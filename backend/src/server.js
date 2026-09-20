@@ -123,12 +123,8 @@ export async function buildServer() {
     { prefix: '/api/v1' }
   );
 
-  // Generated documents (private: served only to owners via a signed check).
-  await fastify.register(fastifyStatic, {
-    root: config.STORAGE_DIR,
-    prefix: '/storage/',
-    decorateReply: false,
-  });
+  // Generated documents are served only through the authenticated download route
+  // in routes/documents.js. Never expose STORAGE_DIR through a static handler.
 
   // SPA: serve the built web app if present. This registration owns the
   // reply.sendFile decorator (used by the history-fallback handler below);
