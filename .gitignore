@@ -43,6 +43,12 @@ google-services.json
 data/*.db
 !backend/migrations/**/*.sql
 
+# Runtime document storage (generated at runtime, never source)
+backend/:memory:
+backend/data/storage/
+backend/tmp-storage-test/
+**/storage/documents/
+
 # IDE
 .idea/
 .vscode/
