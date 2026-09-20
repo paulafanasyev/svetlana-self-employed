@@ -223,7 +223,7 @@ export const finance = {
   invoices: (q) => api.get(`/invoices${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   createInvoice: (body) => api.post('/invoices', body),
   updateInvoice: (id, body) => api.put(`/invoices/${id}`, body),
-  payInvoice: (id, body) => api.post(`/invoices/${id}/pay`, body),
+  markInvoicePaid: (id, payment_method) => api.post(`/invoices/${id}/mark-paid`, { payment_method }),
   deleteInvoice: (id) => api.del(`/invoices/${id}`),
   revenue: (from, to) => api.get(`/invoices/analytics/revenue?from=${from}&to=${to}`),
 
