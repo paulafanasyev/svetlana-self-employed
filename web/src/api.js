@@ -240,6 +240,7 @@ export const ai = {
   conversation: (id) => api.get(`/ai/conversations/${id}`),
   deleteConversation: (id) => api.del(`/ai/conversations/${id}`),
   actions: (params = '') => api.get(`/ai/actions${params}`),
+  approveAction: (id) => api.post(`/ai/actions/${id}/approve`),
 };
 
 export const marketplace = {
