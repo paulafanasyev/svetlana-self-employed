@@ -64,13 +64,15 @@ export async function ingestDocument(doc) {
 
   // Embed asynchronously and persist vectors (no external call inside the txn).
   const chunks = db().prepare('SELECT id, text FROM knowledge_chunks WHERE document_id = ?').all(id);
+  let method = 'none';
   for (const ch of chunks) {
-    const { vector, method } = await embed(ch.text);
+    const embedded = await embed(ch.text);
+    method = embedded.method;
     db()
       .prepare('UPDATE knowledge_chunks SET embedding = ? WHERE id = ?')
-      .run(JSON.stringify(vector), ch.id);
+      .run(JSON.stringify(embedded.vector), ch.id);
   }
-  return { id, chunks: chunks.length, method: chunks.length ? (await embed(chunks[0].text)).method : 'none' };
+  return { id, chunks: chunks.length, method };
 }
 
 /**
@@ -88,7 +90,10 @@ export async function retrieve({ query, limit = 8, userId = null, sources = null
               WHERE d.status = 'active'`)
     .all();
   // Permission boundary (§29): private docs only visible to their owner.
-  rows = rows.filter((r) => r.visibility === 'public' || (userId && r.visibility === 'user') || (userId && r.visibility === 'private' && r.owner_id === userId));
+  rows = rows.filter((r) =>
+    r.visibility === 'public' ||
+    (userId && (r.visibility === 'user' || r.visibility === 'private') && r.owner_id === userId)
+  );
   if (sources) rows = rows.filter((r) => sources.includes(r.source));
 
   const scored = [];
