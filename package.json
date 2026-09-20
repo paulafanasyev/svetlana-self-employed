@@ -19,7 +19,7 @@
     "test:backend": "npm run test -w backend",
     "test:web": "npm run test -w web",
     "e2e": "npm run e2e -w backend",
-    "lint": "echo \"lint placeholder\" && exit 0",
+    "lint": "node scripts/lint-check.mjs",
     "start": "npm run start -w backend",
     "migrate": "npm run migrate -w backend",
     "seed": "npm run seed -w backend",
