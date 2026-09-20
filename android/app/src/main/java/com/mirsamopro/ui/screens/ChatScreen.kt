@@ -48,6 +48,7 @@ fun ChatScreen(onLogout: () -> Unit) {
     var input by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var emotion by remember { mutableStateOf("IDLE") }
+    var approvingActionId by remember { mutableStateOf<String?>(null) }
     val messages = remember { mutableStateListOf<JSONObject>() }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -78,7 +79,29 @@ fun ChatScreen(onLogout: () -> Unit) {
                     }
                 }
                 items(messages) { m ->
-                    ChatBubble(m)
+                    ChatBubble(
+                        m,
+                        onApprove = { actionId ->
+                            approvingActionId = actionId
+                            scope.launch {
+                                try {
+                                    val result = withContext(Dispatchers.IO) { AuthApi.approveAction(actionId) }
+                                    messages.add(JSONObject()
+                                        .put("role", "assistant")
+                                        .put("content", result.optString("message", "Результат подтверждённого действия"))
+                                        .put("actions", JSONArray().put(result)))
+                                    emotion = if (result.optBoolean("verified") && result.optString("status") == "succeeded") "SUCCESS" else "WARNING"
+                                } catch (e: Exception) {
+                                    messages.add(JSONObject().put("role", "assistant")
+                                        .put("content", "FAILED: " + e.message))
+                                    emotion = "WARNING"
+                                } finally {
+                                    approvingActionId = null
+                                }
+                            }
+                        },
+                        approvingActionId = approvingActionId,
+                    )
                 }
                 if (busy) item { Text("Светлана думает…", style = MaterialTheme.typography.bodySmall) }
             }
@@ -124,7 +147,11 @@ fun ChatScreen(onLogout: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChatBubble(m: JSONObject) {
+private fun ChatBubble(
+    m: JSONObject,
+    onApprove: (String) -> Unit,
+    approvingActionId: String?,
+) {
     val isUser = m.optString("role") == "user"
     Column(
         Modifier.fillMaxWidth(),
@@ -151,6 +178,14 @@ private fun ChatBubble(m: JSONObject) {
                         else -> "⏳ PENDING"
                     }
                     AssistChip(onClick = {}, label = { Text(label, style = MaterialTheme.typography.labelSmall) })
+                    if (a.optBoolean("needs_approval") && a.optString("id").isNotBlank()) {
+                        Button(
+                            enabled = approvingActionId != a.optString("id"),
+                            onClick = { onApprove(a.optString("id")) },
+                        ) {
+                            Text(if (approvingActionId == a.optString("id")) "Выполняю…" else "Подтвердить")
+                        }
+                    }
                 }
             }
         }
