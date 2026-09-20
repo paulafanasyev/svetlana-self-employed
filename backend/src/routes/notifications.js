@@ -70,3 +70,24 @@ export function flushDueReminders(userId) {
   });
   return n;
 }
+
+
+/** Promote all due reminders while the backend process is alive. */
+export function flushAllDueReminders() {
+  const due = db()
+    .prepare(`SELECT id, owner_id, message
+              FROM reminders
+              WHERE status = 'pending' AND remind_at <= unixepoch()`)
+    .all();
+  if (!due.length) return 0;
+  const ins = db()
+    .prepare('INSERT INTO notifications (id, user_id, kind, title, body) VALUES (?, ?, ?, ?, ?)');
+  const mark = db().prepare("UPDATE reminders SET status = 'sent' WHERE id = ?");
+  db().transaction(() => {
+    for (const r of due) {
+      ins.run(nanoid(), r.owner_id, 'reminder', 'Напоминание', r.message);
+      mark.run(r.id);
+    }
+  });
+  return due.length;
+}

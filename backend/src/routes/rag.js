@@ -58,7 +58,14 @@ export default async function ragRoutes(fastify) {
 
     const visibility = body.source === 'user' ? 'user' : 'public';
     const out = await ingestDocument({
-      ...body,
+      source: body.source,
+      sourceName: body.source_name,
+      sourceUrl: body.source_url ?? null,
+      title: body.title,
+      text: body.text,
+      contentType: body.content_type,
+      publishedAt: body.published_at ?? null,
+      effectiveAt: body.effective_at ?? null,
       visibility,
       ownerId: body.source === 'user' ? request.user.id : null,
     });

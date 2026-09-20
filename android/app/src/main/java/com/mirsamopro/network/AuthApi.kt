@@ -38,6 +38,9 @@ object AuthApi {
 
     fun logout(): JSONObject = ApiClient.post("/auth/logout")
 
+    fun approveAction(actionId: String): JSONObject =
+        ApiClient.post("/ai/actions/$actionId/approve")
+
     /** Все сущности пользователя — для drawer'а и E2E-проверок. */
     fun exportData(): JSONObject = ApiClient.get("/auth/export")
 

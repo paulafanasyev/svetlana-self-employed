@@ -26,7 +26,7 @@ const SUGGESTIONS = [
   'Покажи просроченные задачи',
 ];
 
-function ActionEvidence({ action }) {
+function ActionEvidence({ action, onApprove, approving }) {
   const tone = action.status === 'succeeded' && action.verified ? 'ok'
     : action.status === 'succeeded' ? 'warn'
     : action.status === 'failed' ? 'err' : 'warn';
@@ -39,6 +39,15 @@ function ActionEvidence({ action }) {
       <span className={`badge ${tone}`}>{label}</span>
       <span className="badge">{action.tool}</span>
       {action.needs_approval && <span className="badge warn">требует подтверждения</span>}
+      {action.needs_approval && action.id && (
+        <button
+          className="btn btn-sm btn-primary"
+          onClick={() => onApprove(action)}
+          disabled={approving === action.id}
+        >
+          {approving === action.id ? 'Выполняю…' : 'Подтвердить'}
+        </button>
+      )}
       {action.error && <span className="small muted">{action.error}</span>}
     </div>
   );
@@ -52,6 +61,7 @@ export default function SvetlanaPage() {
   const [busy, setBusy] = useState(false);
   const [emotion, setEmotion] = useState('IDLE');
   const [error, setError] = useState(null);
+  const [approving, setApproving] = useState(null);
   const scroller = useRef(null);
 
   // Restore the most recent conversation on first open.
@@ -106,6 +116,28 @@ export default function SvetlanaPage() {
     }
   };
 
+  const approve = async (action) => {
+    setError(null);
+    setApproving(action.id);
+    try {
+      const result = await ai.approveAction(action.id);
+      setMessages((items) => items.map((m) => ({
+        ...m,
+        actions: (m.actions ?? []).map((a) => a.id === action.id ? { ...a, ...result } : a),
+      })));
+      setMessages((items) => [...items, {
+        role: 'assistant',
+        content: result.message || (result.verified ? 'Действие подтверждено и выполнено.' : 'Действие выполнено, но его нельзя подтвердить как VERIFIED.'),
+        actions: [result],
+      }]);
+      setEmotion(result.status === 'succeeded' && result.verified ? 'SUCCESS' : result.status === 'failed' ? 'WARNING' : 'CONCERNED');
+    } catch (err) {
+      setError(err.message ?? 'Не удалось выполнить подтверждённое действие');
+    } finally {
+      setApproving(null);
+    }
+  };
+
   const ringClass = EMOTION_CLASS[emotion] ?? '';
 
   return (
@@ -140,7 +172,9 @@ export default function SvetlanaPage() {
                 <div className="bubble">{m.content}</div>
                 {m.actions?.length > 0 && (
                   <div style={{ marginTop: 6 }}>
-                    {m.actions.map((a, j) => <ActionEvidence key={j} action={a} />)}
+                    {m.actions.map((a, j) => (
+                      <ActionEvidence key={j} action={a} onApprove={approve} approving={approving} />
+                    ))}
                   </div>
                 )}
                 {m.provider && m.provider !== 'local' && (

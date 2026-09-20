@@ -3,6 +3,7 @@ package com.mirsamopro.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,18 +41,18 @@ fun HomeScreen(
                     "Клиент или задача, созданные тут, видны на сайте.",
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Button(onClick = onChat, modifier = Modifier.fillMaxSize()) {
+            Button(onClick = onChat, modifier = Modifier.fillMaxWidth()) {
                 Text("✨ Поговорить со Светланой")
             }
-            Button(onClick = onTasks, modifier = Modifier.fillMaxSize()) {
+            Button(onClick = onTasks, modifier = Modifier.fillMaxWidth()) {
                 Text("✅ Задачи")
             }
-            Button(onClick = onClients, modifier = Modifier.fillMaxSize()) {
+            Button(onClick = onClients, modifier = Modifier.fillMaxWidth()) {
                 Text("👥 Клиенты")
             }
             Button(
                 onClick = onLogout,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(),
             ) { Text("Выйти") }
         }

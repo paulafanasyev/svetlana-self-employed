@@ -7,7 +7,10 @@
  */
 
 // import.meta.env is undefined outside vite (e.g. unit tests); fall back safely.
-export const API_BASE = (import.meta.env?.VITE_API_URL || '/api/v1').replace(/\/$/, '');
+const DEFAULT_PAGES_API = 'https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1';
+const isPagesHost = typeof window !== 'undefined' && /(^|\.)github\.io$/.test(window.location.hostname);
+const configuredApi = import.meta.env?.VITE_API_URL || (isPagesHost ? (import.meta.env?.VITE_PAGES_API_URL || DEFAULT_PAGES_API) : '/api/v1');
+export const API_BASE = configuredApi.replace(/\/$/, '');
 const TOKEN_KEY = 'mir_access_token';
 const REFRESH_KEY = 'mir_refresh_token';
 
@@ -118,7 +121,7 @@ export const auth = {
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
   exportData: () => api.get('/auth/export'),
-  deleteAccount: (password) => api.del('/auth/account', JSON.stringify({ password })),
+  deleteAccount: (password) => api.del('/auth/account', { password }),
 };
 
 /** Health probe — used by the shell to show an honest backend status badge. */
@@ -150,7 +153,7 @@ export const crm = {
   clientContacts: (id) => api.get(`/clients/${id}/contacts`),
   addClientContact: (id, body) => api.post(`/clients/${id}/contacts`, body),
   deleteClientContact: (id, cid) => api.del(`/clients/${id}/contacts/${cid}`),
-  addClientTag: (id, tag) => api.post(`/clients/${id}/tags`, { tag }),
+  addClientTag: (id, tag) => api.post(`/clients/${id}/tags`, { tags: [tag] }),
   removeClientTag: (id, tag) => api.del(`/clients/${id}/tags/${encodeURIComponent(tag)}`),
 
   companies: (q) => api.get(`/companies${q ? `?q=${encodeURIComponent(q)}` : ''}`),
@@ -220,7 +223,7 @@ export const finance = {
   invoices: (q) => api.get(`/invoices${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   createInvoice: (body) => api.post('/invoices', body),
   updateInvoice: (id, body) => api.put(`/invoices/${id}`, body),
-  payInvoice: (id, body) => api.post(`/invoices/${id}/pay`, body),
+  markInvoicePaid: (id, payment_method) => api.post(`/invoices/${id}/mark-paid`, { payment_method }),
   deleteInvoice: (id) => api.del(`/invoices/${id}`),
   revenue: (from, to) => api.get(`/invoices/analytics/revenue?from=${from}&to=${to}`),
 
@@ -237,6 +240,7 @@ export const ai = {
   conversation: (id) => api.get(`/ai/conversations/${id}`),
   deleteConversation: (id) => api.del(`/ai/conversations/${id}`),
   actions: (params = '') => api.get(`/ai/actions${params}`),
+  approveAction: (id) => api.post(`/ai/actions/${id}/approve`),
 };
 
 export const marketplace = {
@@ -290,7 +294,7 @@ export const government = {
   grantsPersonalized: () => api.get('/grants/personalized'),
   grant: (id) => api.get(`/grants/${id}`),
   createGrant: (body) => api.post('/grants', body),
-  updateGrant: (id, body) => api.put(`/grants/${id}`, body),
+  updateGrant: (id, body) => api.patch(`/grants/${id}`, body),
   deleteGrant: (id) => api.del(`/grants/${id}`),
 };
 

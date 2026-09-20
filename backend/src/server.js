@@ -42,7 +42,7 @@ import vacancyRoutes from './routes/vacancies.js';
 import courseRoutes from './routes/courses.js';
 import grantRoutes from './routes/grants.js';
 import competitorRoutes from './routes/competitors.js';
-import notificationRoutes from './routes/notifications.js';
+import notificationRoutes, { flushAllDueReminders } from './routes/notifications.js';
 import ragRoutes from './routes/rag.js';
 import aiRoutes from './routes/ai.js';
 import adminRoutes from './routes/admin.js';
@@ -64,7 +64,22 @@ export async function buildServer() {
   });
 
   await fastify.register(helmet, {
-    contentSecurityPolicy: false, // SPA needs inline styles; CSP is set at the CDN layer
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'self'"],
+        formAction: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        styleSrcAttr: ["'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'", config.GITHUB_PAGES_ORIGIN, config.WEB_ORIGIN, "https://mir-samozanyatykh-api-frankfurt.onrender.com"],
+        fontSrc: ["'self'", "data:", "https:"],
+        workerSrc: ["'self'", "blob:"],
+      },
+    },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
 
@@ -123,12 +138,8 @@ export async function buildServer() {
     { prefix: '/api/v1' }
   );
 
-  // Generated documents (private: served only to owners via a signed check).
-  await fastify.register(fastifyStatic, {
-    root: config.STORAGE_DIR,
-    prefix: '/storage/',
-    decorateReply: false,
-  });
+  // Generated documents are served only through the authenticated download route
+  // in routes/documents.js. Never expose STORAGE_DIR through a static handler.
 
   // SPA: serve the built web app if present. This registration owns the
   // reply.sendFile decorator (used by the history-fallback handler below);
@@ -171,7 +182,19 @@ export async function startServer() {
   await fastify.listen({ port: config.PORT, host: config.HOST });
   fastify.log.info(`🚀 API ready on http://${config.HOST}:${config.PORT}`);
 
+  // Keep reminder promotion independent from UI reads.
+  const reminderTimer = setInterval(() => {
+    try {
+      const promoted = flushAllDueReminders();
+      if (promoted) fastify.log.info({ promoted }, 'due reminders promoted');
+    } catch (err) {
+      fastify.log.error({ err }, 'reminder worker failed');
+    }
+  }, 30_000);
+  reminderTimer.unref?.();
+
   const shutdown = async (signal) => {
+    clearInterval(reminderTimer);
     fastify.log.info({ signal }, 'shutting down');
     await fastify.close();
     closeDb();

@@ -48,6 +48,9 @@ export default async function paymentRoutes(fastify) {
       .prepare('SELECT * FROM payments WHERE idempotency_key = ?')
       .get(body.idempotency_key);
     if (existing) {
+      if (existing.owner_id !== request.user.id) {
+        return sendError(reply, 409, 'idempotency_conflict', 'Этот ключ идемпотентности уже используется другим платежом');
+      }
       return reply.send({
         ...existing,
         idempotent_replay: true,
@@ -63,8 +66,11 @@ export default async function paymentRoutes(fastify) {
       const order = db().prepare('SELECT * FROM orders WHERE id = ?').get(body.order_id);
       if (!order) return sendError(reply, 404, 'not_found', 'Заказ не найден');
       // The buyer pays; the seller receives.
-      if (order.buyer_id !== request.user.id && order.seller_id !== request.user.id) {
-        return sendError(reply, 403, 'forbidden', 'Нет доступа к заказу');
+      if (order.buyer_id !== request.user.id) {
+        return sendError(reply, 403, 'forbidden', 'Оплачивать заказ может только покупатель');
+      }
+      if (order.status !== 'created') {
+        return sendError(reply, 409, 'invalid_state', `Заказ нельзя оплатить в статусе ${order.status}`);
       }
       amount = order.amount;
       currency = order.currency;
@@ -111,18 +117,20 @@ export default async function paymentRoutes(fastify) {
         returnUrl: body.return_url,
       });
 
+      const providerState = result.state ?? (result.success ? 'succeeded' : 'failed');
       db().transaction(() => {
         db()
-          .prepare(`UPDATE payments SET status = ?, provider_txn_id = ?, evidence = ?, failure_reason = ?, updated_at = unixepoch()
+          .prepare(`UPDATE payments SET status = ?, provider_txn_id = ?, provider_confirmation_url = ?, evidence = ?, failure_reason = ?, updated_at = unixepoch()
                     WHERE id = ?`)
           .run(
-            result.success ? 'succeeded' : 'failed',
+            providerState,
             result.providerTransactionId ?? null,
+            result.confirmationUrl ?? null,
             JSON.stringify(result.evidence ?? {}),
-            result.success ? null : (result.errorMessage ?? null),
+            providerState === 'failed' ? (result.errorMessage ?? null) : null,
             paymentId
           );
-        if (result.success && body.order_id) {
+        if (providerState === 'succeeded' && body.order_id) {
           db()
             .prepare("UPDATE orders SET status = 'paid', updated_at = unixepoch() WHERE id = ?")
             .run(body.order_id);
@@ -132,18 +140,27 @@ export default async function paymentRoutes(fastify) {
                       ON CONFLICT(user_id) DO UPDATE SET available = available + ?, updated_at = unixepoch()`)
             .run(sellerId, sellerAmount, currency, sellerAmount);
         }
-        if (result.success && body.invoice_id) {
+        if (providerState === 'succeeded' && body.invoice_id) {
           db()
             .prepare("UPDATE invoices SET status = 'paid', paid_at = unixepoch(), updated_at = unixepoch() WHERE id = ?")
             .run(body.invoice_id);
         }
       });
 
-      auditRequest(request, result.success ? 'payment_succeeded' : 'payment_failed', 'payment', paymentId, {
-        amount, provider: provider.name, commission_percent: commissionPercent,
-      });
+      auditRequest(request,
+        providerState === 'succeeded' ? 'payment_succeeded' : providerState === 'pending' ? 'payment_pending' : 'payment_failed',
+        'payment',
+        paymentId,
+        { amount, provider: provider.name, commission_percent: commissionPercent }
+      );
 
-      if (!result.success) {
+      if (providerState === 'pending') {
+        return reply.code(202).send({
+          ...db().prepare('SELECT * FROM payments WHERE id = ?').get(paymentId),
+          message: 'Платёж ожидает подтверждения провайдера.',
+        });
+      }
+      if (providerState === 'failed') {
         return sendError(reply, 402, 'payment_failed', result.errorMessage ?? 'Платёж не прошёл', {
           status: 'FAILED',
           payment_id: paymentId,
@@ -172,6 +189,44 @@ export default async function paymentRoutes(fastify) {
       .prepare('SELECT * FROM payments WHERE owner_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?')
       .all(request.user.id, limit, offset);
     return { data: rows, limit, offset };
+  });
+
+  fastify.post('/:id/sync', async (request, reply) => {
+    const payment = db().prepare('SELECT * FROM payments WHERE id = ? AND owner_id = ?').get(request.params.id, request.user.id);
+    if (!payment) return sendError(reply, 404, 'not_found', 'Платёж не найден');
+    if (!payment.provider_txn_id) return sendError(reply, 409, 'not_syncable', 'У провайдера нет идентификатора платежа');
+    if (payment.status !== 'pending') return reply.send(payment);
+
+    const provider = resolvePaymentProvider(payment.provider);
+    if (!provider?.getStatus) return sendError(reply, 501, 'unsupported', 'Провайдер не поддерживает синхронизацию статуса');
+
+    const result = await provider.getStatus({ providerTransactionId: payment.provider_txn_id });
+    db().transaction(() => {
+      db().prepare(`UPDATE payments
+                    SET status = ?, provider_confirmation_url = COALESCE(?, provider_confirmation_url),
+                        evidence = ?, failure_reason = ?, updated_at = unixepoch()
+                    WHERE id = ? AND owner_id = ?`)
+        .run(
+          result.state,
+          result.confirmationUrl ?? null,
+          JSON.stringify(result.evidence ?? {}),
+          result.state === 'failed' ? (result.errorMessage ?? null) : null,
+          payment.id,
+          request.user.id
+        );
+      if (result.state === 'succeeded' && payment.order_id) {
+        db().prepare("UPDATE orders SET status = 'paid', updated_at = unixepoch() WHERE id = ? AND status = 'created'")
+          .run(payment.order_id);
+        db().prepare(`INSERT INTO seller_balances (user_id, available, currency) VALUES ((SELECT seller_id FROM orders WHERE id = ?), ?, ?)
+                      ON CONFLICT(user_id) DO UPDATE SET available = available + ?, updated_at = unixepoch()`)
+          .run(payment.order_id, payment.seller_amount, payment.currency, payment.seller_amount);
+      }
+      if (result.state === 'succeeded' && payment.invoice_id) {
+        db().prepare("UPDATE invoices SET status = 'paid', paid_at = unixepoch(), updated_at = unixepoch() WHERE id = ?")
+          .run(payment.invoice_id);
+      }
+    });
+    return reply.send(db().prepare('SELECT * FROM payments WHERE id = ?').get(payment.id));
   });
 
   fastify.get('/:id', async (request, reply) => {

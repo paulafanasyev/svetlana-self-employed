@@ -66,12 +66,13 @@ export async function converse({ userId, message, conversationId = null, approve
   };
 
   const persistAction = (record) => {
+    const actionId = nanoid();
     db()
       .prepare(`INSERT INTO ai_actions (id, conversation_id, user_id, turn_id, tool, args_json, status, result_json,
                                          evidence, verified, started_at, finished_at, error)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(
-        nanoid(), conversation.id, userId, turnId, record.tool,
+        actionId, conversation.id, userId, turnId, record.tool,
         JSON.stringify(record.args ?? {}), record.status,
         record.result ? JSON.stringify(record.result) : null,
         JSON.stringify(record.evidence ?? []),
@@ -80,6 +81,8 @@ export async function converse({ userId, message, conversationId = null, approve
         record.finishedAt ? Math.floor(record.finishedAt / 1000) : null,
         record.error ?? null
       );
+    record.id = actionId;
+    return actionId;
   };
 
   const messages = [
@@ -141,11 +144,11 @@ export async function converse({ userId, message, conversationId = null, approve
 
         const record = await runTool(ctx, tc.name, tc.args);
         state.actions.push(record);
-        persistAction(record);
+        const actionId = persistAction(record);
 
         if (record.status === 'succeeded' && record.tool === 'rag.ask') {
           state.hasCitations = true;
-          recordRagCitations({ conversationId: conversation.id, turnId, hits: record.result?.hits ?? [], userId });
+          recordRagCitations({ actionId, hits: record.result?.hits ?? [] });
         }
         if (record.needsApproval) state.pendingRisk = 'high';
 
@@ -195,6 +198,14 @@ export async function converse({ userId, message, conversationId = null, approve
     .run(msgId, conversation.id, content, emotion, providerMeta.provider, providerMeta.model,
       providerMeta.tokensIn, providerMeta.tokensOut, providerMeta.costRub);
 
+  for (const action of state.actions) {
+    if (action.tool === 'rag.ask' && action.id) {
+      db()
+        .prepare('UPDATE rag_citations SET message_id = ? WHERE action_id = ? AND message_id IS NULL')
+        .run(msgId, action.id);
+    }
+  }
+
   audit({ actorId: userId, action: 'ai_turn', entity: 'ai_message', entityId: msgId,
     detail: { turnId, emotion, actions: state.actions.map((a) => ({ tool: a.tool, status: a.status, verified: a.verified })) } });
 
@@ -206,6 +217,7 @@ export async function converse({ userId, message, conversationId = null, approve
     emotion,
     emotion_meta: emotionMeta,
     actions: state.actions.map((a) => ({
+      id: a.id,
       tool: a.tool,
       status: a.status,
       verified: Boolean(a.verified),
@@ -242,12 +254,11 @@ function actionSummary(actions) {
   return lines.join('\n\n');
 }
 
-function recordRagCitations({ conversationId, turnId, hits, userId }) {
+function recordRagCitations({ actionId, hits }) {
   const stmt = db()
     .prepare(`INSERT INTO rag_citations (id, action_id, message_id, document_id, chunk_id, quote)
-              VALUES (?, NULL, NULL, ?, ?, ?)`);
+              VALUES (?, ?, NULL, ?, ?, ?)`);
   for (const h of hits.slice(0, 5)) {
-    stmt.run(nanoid(), h.document.id, h.chunk.id, h.quote.slice(0, 500));
+    stmt.run(nanoid(), actionId, h.document.id, h.chunk.id, h.quote.slice(0, 500));
   }
-  void conversationId; void turnId; void userId;
 }

@@ -27,7 +27,15 @@ object ApiClient {
 
     // --- token store, set from DataStore on app start ---------------------
     @Volatile private var accessToken: String? = null
+    @Volatile private var refreshToken: String? = null
+    @Volatile private var persistTokens: ((String, String) -> Unit)? = null
+
     fun setToken(token: String?) { accessToken = token }
+    fun setTokens(access: String?, refresh: String?) {
+        accessToken = access
+        refreshToken = refresh
+    }
+    fun setTokenPersistence(callback: ((String, String) -> Unit)?) { persistTokens = callback }
     fun hasToken(): Boolean = !accessToken.isNullOrBlank()
 
     // --- generic ----------------------------------------------------------
@@ -37,16 +45,51 @@ object ApiClient {
         return b
     }
 
-    private fun execute(req: Request): JSONObject {
-        client.newCall(req).execute().use { res ->
-            val text = res.body?.string().orEmpty()
+    private fun execute(req: Request, allowRefresh: Boolean = true): JSONObject {
+        client.newCall(req).execute().use { response ->
+            val text = response.body?.string().orEmpty()
             val body = if (text.isNotBlank()) runCatching { JSONObject(text) }.getOrNull() else null
-            if (!res.isSuccessful) {
+            if (response.code == 401 && allowRefresh && !refreshToken.isNullOrBlank()) {
+                val refreshed = runCatching { refreshAccessToken() }.getOrDefault(false)
+                if (refreshed) return execute(reqWithBearer(req, accessToken), allowRefresh = false)
+            }
+            if (!response.isSuccessful) {
                 val code = body?.optString("error")?.ifBlank { "http_error" } ?: "http_error"
-                val msg = body?.optString("message")?.ifBlank { "HTTP ${res.code}" } ?: "HTTP ${res.code}"
-                throw ApiException(code, msg, res.code)
+                val msg = body?.optString("message")?.ifBlank { "HTTP " + response.code } ?: ("HTTP " + response.code)
+                throw ApiException(code, msg, response.code)
             }
             return body ?: JSONObject()
+        }
+    }
+
+    private fun reqWithBearer(req: Request, token: String?): Request {
+        return if (token.isNullOrBlank()) req
+        else req.newBuilder().header("Authorization", "Bearer $token").build()
+    }
+
+    private fun refreshAccessToken(): Boolean {
+        val raw = refreshToken ?: return false
+        val body = JSONObject().put("refresh_token", raw).toString().toRequestBody(JSON.toMediaType())
+        val request = Request.Builder().url("$BASE/auth/refresh").post(body).build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                accessToken = null
+                refreshToken = null
+                persistTokens?.invoke("", "")
+                return false
+            }
+            val json = JSONObject(response.body?.string().orEmpty())
+            val access = json.optString("access_token")
+            val refresh = json.optString("refresh_token")
+            if (access.isBlank() || refresh.isBlank()) {
+                accessToken = null
+                refreshToken = null
+                persistTokens?.invoke("", "")
+                return false
+            }
+            setTokens(access, refresh)
+            persistTokens?.invoke(access, refresh)
+            return true
         }
     }
 

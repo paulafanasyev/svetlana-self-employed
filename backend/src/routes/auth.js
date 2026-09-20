@@ -6,6 +6,8 @@
  */
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
+import { unlink } from 'node:fs/promises';
+import { resolve, relative } from 'node:path';
 import { config } from '../config.js';
 import { db } from '../db/client.js';
 import {
@@ -172,10 +174,34 @@ export default async function authRoutes(fastify) {
     if (!verifyPassword(String(password ?? ''), user.password_hash)) {
       return sendError(reply, 401, 'invalid_credentials', 'Пароль не подтверждён');
     }
-    revokeAllUserTokens(user.id);
-    db().prepare("UPDATE users SET status = 'deleted', email = ?, password_hash = '' WHERE id = ?")
-      .run(`deleted+${nanoid(8)}@local.invalid`, user.id);
-    auditRequest(request, 'delete_account', 'user', user.id);
+
+    // Remove generated files before deleting the DB rows so no private DOCX
+    // survives a successful account deletion.
+    const files = db()
+      .prepare('SELECT docx_path FROM documents WHERE owner_id = ? AND docx_path IS NOT NULL')
+      .all(user.id);
+    const storageRoot = resolve(config.STORAGE_DIR);
+    try {
+      for (const row of files) {
+        const filePath = resolve(row.docx_path);
+        const rel = relative(storageRoot, filePath);
+        if (rel.startsWith('..' + '/')) throw new Error('Unsafe document path');
+        await unlink(filePath).catch((err) => {
+          if (err.code !== 'ENOENT') throw err;
+        });
+      }
+    } catch (err) {
+      request.log.error({ err, userId: user.id }, 'account file purge failed');
+      return sendError(reply, 500, 'delete_failed', 'Не удалось безопасно удалить файлы аккаунта');
+    }
+
+    const userId = user.id;
+    revokeAllUserTokens(userId);
+    // Audit before the FK-cascading delete; actor_id is then nulled by ON DELETE SET NULL.
+    auditRequest(request, 'delete_account', 'user', userId);
+    db().transaction(() => {
+      db().prepare('DELETE FROM users WHERE id = ?').run(userId);
+    });
     reply.send({ ok: true });
   });
 

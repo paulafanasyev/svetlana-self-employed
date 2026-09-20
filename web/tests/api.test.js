@@ -152,3 +152,25 @@ test('api: clearTokens removes persisted credentials', () => {
   assert.equal(store.has('mir_access_token'), false);
   assert.equal(store.has('mir_refresh_token'), false);
 });
+
+test('api: account deletion sends a JSON object, not a double-encoded string', async () => {
+  reset();
+  await (await import('../src/api.js')).auth.deleteAccount('secret');
+  assert.equal(fetched[0].options.method, 'DELETE');
+  assert.equal(fetched[0].options.body, '{"password":"secret"}');
+});
+
+test('api: client tags use the backend array contract', async () => {
+  reset();
+  const { crm } = await import('../src/api.js');
+  await crm.addClientTag('client-1', 'важный');
+  assert.equal(fetched[0].options.body, '{"tags":["важный"]}');
+});
+
+test('api: grant update uses PATCH to match the backend route', async () => {
+  reset();
+  const { government } = await import('../src/api.js');
+  await government.updateGrant('grant-1', { title: 'Обновлено' });
+  assert.equal(fetched[0].options.method, 'PATCH');
+});
+

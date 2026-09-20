@@ -21,9 +21,9 @@ export default async function marketplaceRoutes(fastify) {
     const status = String(request.query?.status ?? 'open');
     const category = String(request.query?.category ?? '');
     const q = String(request.query?.q ?? '').trim();
-    let sql = `SELECT m.*, u.email AS customer_email,
+    let sql = `SELECT m.*,
                (SELECT COUNT(*) FROM applications a WHERE a.project_id = m.id) AS applications_count
-               FROM marketplace_projects m JOIN users u ON u.id = m.customer_id
+               FROM marketplace_projects m
                WHERE m.status = ?`;
     const params = [status];
     if (category) { sql += ' AND m.category = ?'; params.push(category); }
@@ -35,16 +35,24 @@ export default async function marketplaceRoutes(fastify) {
 
   fastify.get('/projects/:id', async (request, reply) => {
     const row = db()
-      .prepare(`SELECT m.*, u.email AS customer_email
-                FROM marketplace_projects m JOIN users u ON u.id = m.customer_id
-                WHERE m.id = ?`)
+      .prepare('SELECT * FROM marketplace_projects WHERE id = ?')
       .get(request.params.id);
     if (!row) return sendError(reply, 404, 'not_found', 'Проект не найден');
-    const apps = db()
-      .prepare(`SELECT a.*, u.email AS specialist_email FROM applications a
-                JOIN users u ON u.id = a.specialist_id WHERE a.project_id = ? ORDER BY a.created_at`)
-      .all(request.params.id);
-    return { ...row, skills: readJson(row.skills_json, []), applications: apps };
+
+    // Applications contain participant data and are visible only to the project owner.
+    let applications = [];
+    if (row.customer_id === request.user.id) {
+      applications = db()
+        .prepare(`SELECT a.*, u.email AS specialist_email FROM applications a
+                  JOIN users u ON u.id = a.specialist_id WHERE a.project_id = ? ORDER BY a.created_at`)
+        .all(request.params.id);
+    }
+    return {
+      ...row,
+      skills: readJson(row.skills_json, []),
+      applications_count: db().prepare('SELECT COUNT(*) AS n FROM applications WHERE project_id = ?').get(request.params.id).n,
+      applications,
+    };
   });
 
   fastify.post('/projects', async (request, reply) => {
@@ -324,8 +332,7 @@ export default async function marketplaceRoutes(fastify) {
 
   fastify.get('/reviews/:userId', async (request, reply) => {
     const rows = db()
-      .prepare(`SELECT r.*, u.email AS author_email FROM reviews r JOIN users u ON u.id = r.author_id
-                WHERE r.target_id = ? ORDER BY r.created_at DESC`)
+      .prepare('SELECT r.* FROM reviews r WHERE r.target_id = ? ORDER BY r.created_at DESC')
       .all(request.params.userId);
     const avg = rows.length ? rows.reduce((a, r) => a + r.rating, 0) / rows.length : 0;
     return { data: rows, average: Number(avg.toFixed(2)), count: rows.length };

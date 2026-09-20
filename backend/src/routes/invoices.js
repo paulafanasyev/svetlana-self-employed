@@ -36,13 +36,32 @@ export default async function invoiceRoutes(fastify) {
     })
   );
 
-  fastify.post('/:id/pay', async (request, reply) => {
+  // Legacy fake "pay" endpoint is intentionally disabled: payment must come
+  // from a payment provider or an explicit manual settlement record.
+  fastify.post('/:id/pay', async (_request, reply) => {
+    return sendError(reply, 410, 'payment_endpoint_removed',
+      'Этот endpoint больше не помечает счёт оплаченным без подтверждения платежа. Используйте платёжный провайдер или ручное погашение.');
+  });
+
+  fastify.post('/:id/mark-paid', async (request, reply) => {
     const inv = db().prepare('SELECT * FROM invoices WHERE id = ?').get(request.params.id);
     if (!inv || inv.owner_id !== request.user.id) return sendError(reply, 404, 'not_found', 'Счёт не найден');
+    if (inv.status === 'paid') return reply.send(inv);
+
+    const body = validateOrThrow(
+      z.object({ payment_method: z.enum(['cash', 'bank_transfer', 'other']) }),
+      request.body ?? {},
+      reply
+    );
+    if (!body) return;
     db()
       .prepare("UPDATE invoices SET status = 'paid', paid_at = unixepoch(), updated_at = unixepoch() WHERE id = ?")
       .run(inv.id);
-    auditRequest(request, 'invoice_paid', 'invoice', inv.id, { amount: inv.amount });
+    auditRequest(request, 'invoice_mark_paid', 'invoice', inv.id, {
+      amount: inv.amount,
+      payment_method: body.payment_method,
+      manual: true,
+    });
     reply.send(db().prepare('SELECT * FROM invoices WHERE id = ?').get(inv.id));
   });
 

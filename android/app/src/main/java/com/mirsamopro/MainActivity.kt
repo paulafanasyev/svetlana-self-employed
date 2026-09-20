@@ -17,7 +17,11 @@ class MainActivity : ComponentActivity() {
 
         tokenStore = TokenStore(applicationContext)
         // Hydrate the API client before drawing UI (restores a valid session).
-        ApiClient.setToken(tokenStore.access())
+        ApiClient.setTokens(tokenStore.access(), tokenStore.refresh())
+        ApiClient.setTokenPersistence { access, refresh ->
+            if (access.isBlank() || refresh.isBlank()) tokenStore.clear()
+            else tokenStore.save(access, refresh)
+        }
 
         setContent {
             MirTheme {
@@ -25,8 +29,10 @@ class MainActivity : ComponentActivity() {
                     isLoggedIn = tokenStore.hasToken(),
                     onLogin = { email, password ->
                         val res = AuthApi.login(email, password)
-                        ApiClient.setToken(res.optString("access_token"))
-                        tokenStore.save(res.optString("access_token"), res.optString("refresh_token"))
+                        val access = res.optString("access_token").ifBlank { throw IllegalStateException("Сервер не вернул access token") }
+                        val refresh = res.optString("refresh_token").ifBlank { throw IllegalStateException("Сервер не вернул refresh token") }
+                        ApiClient.setTokens(access, refresh)
+                        tokenStore.save(access, refresh)
                     },
                     onRegister = { name, email, password ->
                         val res = AuthApi.register(name, email, password)
@@ -35,7 +41,7 @@ class MainActivity : ComponentActivity() {
                     },
                     onLogout = {
                         runCatching { AuthApi.logout() }
-                        ApiClient.setToken(null)
+                        ApiClient.setTokens(null, null)
                         tokenStore.clear()
                     },
                 )

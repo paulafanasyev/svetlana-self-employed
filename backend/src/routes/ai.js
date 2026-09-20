@@ -3,10 +3,11 @@
  * actions. One endpoint, one Светлана, shared by web and Android.
  */
 import { z } from 'zod';
+import { auditRequest } from '../plugins/audit.js';
 import { nanoid } from 'nanoid';
 import { db } from '../db/client.js';
 import { converse } from '../ai/orchestrator.js';
-import { listTools } from '../ai/tools/index.js';
+import { listTools, getTool, runTool } from '../ai/tools/index.js';
 import { sendError, validateOrThrow } from '../lib/http.js';
 
 export default async function aiRoutes(fastify) {
@@ -76,6 +77,67 @@ export default async function aiRoutes(fastify) {
                 FROM ai_actions a WHERE a.user_id = ? ORDER BY a.created_at DESC LIMIT ? OFFSET ?`)
       .all(request.user.id, limit, offset);
     return { data: rows };
+  });
+
+  // Execute an existing blocked sensitive action after explicit confirmation.
+  fastify.post('/actions/:id/approve', async (request, reply) => {
+    const row = db()
+      .prepare('SELECT * FROM ai_actions WHERE id = ? AND user_id = ?')
+      .get(request.params.id, request.user.id);
+    if (!row) return sendError(reply, 404, 'not_found', 'Действие не найдено');
+    if (row.status !== 'blocked') {
+      return sendError(reply, 409, 'invalid_state', 'Действие уже обработано или не требует подтверждения');
+    }
+
+    const tool = getTool(row.tool);
+    if (!tool || !tool.sensitive) {
+      return sendError(reply, 400, 'invalid_action', 'Действие не поддерживает подтверждение');
+    }
+
+    let args;
+    try { args = JSON.parse(row.args_json || '{}'); }
+    catch { return sendError(reply, 500, 'corrupt_action', 'Не удалось прочитать параметры действия'); }
+
+    const user = db().prepare('SELECT * FROM users WHERE id = ?').get(request.user.id);
+    const profile = db().prepare('SELECT * FROM profiles WHERE user_id = ?').get(request.user.id);
+    const record = await runTool({
+      userId: request.user.id,
+      user,
+      profile,
+      conversationId: row.conversation_id,
+      turnId: row.turn_id,
+      approvedTools: new Set([row.tool]),
+    }, row.tool, args);
+
+    auditRequest(request, record.status === 'succeeded' && record.verified ? 'approve_verified' : 'approve_action',
+      'ai_action', row.id, { tool: row.tool, status: record.status, verified: Boolean(record.verified) });
+
+    db()
+      .prepare(`UPDATE ai_actions
+                SET status = ?, result_json = ?, evidence = ?, verified = ?,
+                    started_at = ?, finished_at = ?, error = ?, human_approved = 1
+                WHERE id = ? AND user_id = ?`)
+      .run(
+        record.status,
+        record.result ? JSON.stringify(record.result) : null,
+        JSON.stringify(record.evidence || []),
+        record.verified ? 1 : 0,
+        record.startedAt ? Math.floor(record.startedAt / 1000) : null,
+        record.finishedAt ? Math.floor(record.finishedAt / 1000) : null,
+        record.error || null,
+        row.id,
+        request.user.id
+      );
+
+    return reply.send({
+      id: row.id,
+      tool: row.tool,
+      status: record.status,
+      verified: Boolean(record.verified),
+      result: record.result,
+      message: record.message,
+      error: record.error,
+    });
   });
 
   fastify.get('/capabilities', async () => {

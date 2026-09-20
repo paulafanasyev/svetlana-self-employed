@@ -3,6 +3,7 @@ package com.mirsamopro.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,7 +31,11 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(onSuccess: () -> Unit, onRegister: () -> Unit) {
+fun LoginScreen(
+    onLogin: suspend (String, String) -> Unit,
+    onSuccess: () -> Unit,
+    onRegister: () -> Unit,
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
@@ -46,13 +51,13 @@ fun LoginScreen(onSuccess: () -> Unit, onRegister: () -> Unit) {
             OutlinedTextField(
                 value = email, onValueChange = { email = it },
                 label = { Text("Email") }, singleLine = true,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = password, onValueChange = { password = it },
                 label = { Text("Пароль") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth(),
             )
             error?.let { Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
 
@@ -62,17 +67,17 @@ fun LoginScreen(onSuccess: () -> Unit, onRegister: () -> Unit) {
                     busy = true; error = null
                     scope.launch {
                         try {
-                            withContext(Dispatchers.IO) { AuthApi.login(email.trim(), password) }
+                            onLogin(email.trim(), password)
                             onSuccess()
                         } catch (e: ApiException) { error = e.message }
                         catch (e: Exception) { error = "Сеть недоступна: ${e.message}" }
                         finally { busy = false }
                     }
                 },
-                enabled = !busy, modifier = Modifier.fillMaxSize(),
+                enabled = !busy, modifier = Modifier.fillMaxWidth(),
             ) { Text(if (busy) "Входим…" else "Войти") }
 
-            OutlinedButton(onClick = onRegister, modifier = Modifier.fillMaxSize()) {
+            OutlinedButton(onClick = onRegister, modifier = Modifier.fillMaxWidth()) {
                 Text("Нет аккаунта? Зарегистрироваться")
             }
         }

@@ -18,8 +18,8 @@ permissions:
 
 # Prevent overlapping Pages deploys racing each other.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────────
@@ -48,6 +48,8 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
+      - name: Static code checks
+        run: npm run lint
       - name: Backend unit tests
         run: npm run test:backend
         env:
@@ -79,7 +81,8 @@ jobs:
           # Project sites are served from /<repo>/; the canonical root-domain
           # build overrides this with '/' at deploy time. One codebase (§5).
           VITE_BASE_PATH: '/${{ github.event.repository.name }}/'
-          VITE_API_URL: '/api/v1'
+          VITE_API_URL: 'https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1'
+          VITE_PAGES_API_URL: 'https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1'
       - name: Add SPA deep-link fallback (404.html)
         # GitHub Pages serves 404.html for unknown paths. We must NOT just copy
         # index.html (that keeps the 404 status and breaks deep links). Instead
@@ -118,7 +121,7 @@ jobs:
           # On the root domain the canonical is https://мир-самозанятых.рф/.
           # On Pages we keep the same canonical to avoid duplicate SEO (§5),
           # but robots must not index the Pages copy.
-          cat > web/dist/robots-pages.txt <<'EOF'
+          cat > web/dist/robots.txt <<'EOF'
           User-agent: *
           Disallow: /
           EOF
@@ -142,7 +145,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: npm audit (production deps only)
-        run: npm audit --omit=dev --audit-level=high || true
+        run: npm audit --omit=dev --audit-level=high
       - name: Secret scan (API keys / tokens must never be committed)
         run: |
           set -e
@@ -200,7 +203,7 @@ jobs:
           java-version: '17'
       - name: Build Android release APK
         working-directory: android
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: gradle assembleRelease --no-daemon --stacktrace -PmirApiBaseUrl=https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1
       - uses: actions/upload-artifact@v4
         if: always()
         with:

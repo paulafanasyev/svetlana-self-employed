@@ -30,6 +30,7 @@ class TestProvider {
     if (amount > this.ceiling) {
       return {
         success: false,
+        state: 'failed',
         providerTransactionId: null,
         errorMessage: `Тестовый провайдер отклоняет суммы выше ${this.ceiling} (симуляция отказа)`,
         evidence: { provider: 'test', simulated: true, ceiling: this.ceiling, idempotencyKey },
@@ -37,6 +38,7 @@ class TestProvider {
     }
     return {
       success: true,
+      state: 'succeeded',
       providerTransactionId: txn,
       evidence: {
         provider: 'test',
@@ -46,6 +48,13 @@ class TestProvider {
         description,
         at: new Date().toISOString(),
       },
+    };
+  }
+  async getStatus({ providerTransactionId }) {
+    return {
+      state: String(providerTransactionId || '').startsWith('TEST-') ? 'succeeded' : 'failed',
+      providerTransactionId,
+      evidence: { provider: 'test', simulated: true, providerTransactionId },
     };
   }
 }
@@ -61,6 +70,28 @@ class YooKassaProvider {
   get configured() {
     return Boolean(this.shopId && this.secret);
   }
+  async getStatus({ providerTransactionId }) {
+    if (!this.configured) throw new Error('YooKassa не настроен (YOOKASSA_SHOP_ID / YOOKASSA_SECRET)');
+    const auth = Buffer.from(`${this.shopId}:${this.secret}`).toString('base64');
+    const res = await fetch(`${this.base}/payments/${encodeURIComponent(providerTransactionId)}`, {
+      headers: { authorization: `Basic ${auth}` },
+    });
+    const body = await res.json().catch(() => ({}));
+    const state =
+      body.status === 'succeeded'
+        ? 'succeeded'
+        : ['pending', 'waiting_for_capture'].includes(body.status)
+          ? 'pending'
+          : 'failed';
+    return {
+      state,
+      providerTransactionId: body.id ?? providerTransactionId,
+      confirmationUrl: body.confirmation?.confirmation_url ?? null,
+      errorMessage: state === 'failed' ? (body.description ?? `HTTP ${res.status}`) : null,
+      confirmationUrl: body.confirmation?.confirmation_url ?? null,
+      evidence: { provider: 'yookassa', raw_status: body.status ?? null, http_status: res.status },
+    };
+  }
   async charge({ amount, currency, idempotencyKey, description, returnUrl }) {
     if (!this.configured) throw new Error('YooKassa не настроен (YOOKASSA_SHOP_ID / YOOKASSA_SECRET)');
     const auth = Buffer.from(`${this.shopId}:${this.secret}`).toString('base64');
@@ -72,18 +103,24 @@ class YooKassaProvider {
         'Idempotence-Key': idempotencyKey,
       },
       body: JSON.stringify({
-        amount: { value: (amount / 100).toFixed(2), currency: currency.toUpperCase() },
+        amount: { value: Number(amount).toFixed(2), currency: currency.toUpperCase() },
         capture: true,
         confirmation: { type: 'redirect', return_url: returnUrl ?? config.WEB_ORIGIN },
         description: String(description ?? '').slice(0, 128),
       }),
     });
     const body = await res.json().catch(() => ({}));
-    const succeeded = body.status === 'succeeded' || body.status === 'waiting_for_capture';
+    const state =
+      body.status === 'succeeded'
+        ? 'succeeded'
+        : ['pending', 'waiting_for_capture'].includes(body.status)
+          ? 'pending'
+          : 'failed';
     return {
-      success: succeeded,
+      success: state === 'succeeded',
+      state,
       providerTransactionId: body.id ?? null,
-      errorMessage: succeeded ? null : (body.description ?? `HTTP ${res.status}`),
+      errorMessage: state === 'failed' ? (body.description ?? `HTTP ${res.status}`) : null,
       evidence: { provider: 'yookassa', raw_status: body.status ?? null, http_status: res.status },
     };
   }
@@ -100,6 +137,9 @@ class SbpProvider {
   }
   async charge() {
     throw new Error('SBP-провайдер не настроен (требуется банк-эквайер)');
+  }
+  async getStatus() {
+    throw new Error('SBP-провайдер не настроен');
   }
 }
 

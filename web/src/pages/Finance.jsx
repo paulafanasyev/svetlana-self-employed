@@ -92,19 +92,19 @@ export default function Finance() {
     }
   };
 
-  // POST /invoices/:id/pay не читает тело — счёт просто помечается оплаченным.
-  // Показываем ответ честно: реальный статус и дату оплаты из базы.
-  const pay = async (row) => {
+  // Manual settlement is explicit: it never impersonates a payment provider.
+  const markPaid = async (row) => {
     if (busy) return;
+    const method = window.prompt('Способ оплаты: cash, bank_transfer или other', 'bank_transfer');
+    if (!['cash', 'bank_transfer', 'other'].includes(method)) return;
     setBusy(true);
-    const res = await mutate(() => finance.payInvoice(row.id, {}), '');
+    const res = await mutate(() => finance.markInvoicePaid(row.id, method), '');
     setBusy(false);
     if (res) {
       inv.setData((d) => ({ ...d, data: (d?.data ?? []).map((r) => (r.id === res.id ? res : r)) }));
       setNote({
         tone: 'ok',
-        text: `Счёт «${res.number}» оплачен. Статус: ${STATUS_LABEL[res.status] ?? res.status}` +
-          `, дата оплаты: ${fmtDate(res.paid_at)}.`,
+        text: `Счёт «${res.number}» отмечен как оплаченный вручную. Статус: ${STATUS_LABEL[res.status] ?? res.status}, дата оплаты: ${fmtDate(res.paid_at)}.`,
       });
     }
   };
@@ -221,9 +221,9 @@ export default function Finance() {
                         <button
                           className="btn btn-sm btn-primary"
                           disabled={busy || r.status === 'paid' || r.status === 'cancelled'}
-                          onClick={() => pay(r)}
+                          onClick={() => markPaid(r)}
                         >
-                          Оплатить счёт
+                          Отметить как оплаченный
                         </button>
                         <button className="btn btn-sm btn-danger" onClick={() => remove(r.id)}>Удалить</button>
                       </div>
