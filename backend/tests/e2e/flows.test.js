@@ -323,3 +323,79 @@ test('§39 IDOR: user cannot read another user\'s clients', async () => {
   const attempt = await get(`/api/v1/clients/${cid}`, a.token);
   assert.equal(attempt.statusCode, 404, 'чужие данные недоступны (IDOR protection)');
 });
+    
+// ───────────────────────────────────────────────────────────────────────────
+// §40 HARD DELETE: DB rows and auth session are actually removed
+// ───────────────────────────────────────────────────────────────────────────
+test('§40: account deletion cascades owned data and invalidates auth', async () => {
+  const { token, id } = await registerUser(newEmail());
+  const created = await post('/api/v1/clients', { name: 'Удаляемый клиент' }, token);
+  assert.equal(created.statusCode, 201);
+
+  const deleted = await fastify.inject({
+    method: 'DELETE',
+    url: '/api/v1/auth/account',
+    headers: auth(token),
+    payload: { password: 'Test123456' },
+  });
+  assert.equal(deleted.statusCode, 200);
+  assert.equal(db().prepare('SELECT 1 FROM users WHERE id = ?').get(id), undefined);
+  assert.equal(db().prepare('SELECT 1 FROM clients WHERE owner_id = ?').get(id), undefined);
+
+  const after = await get('/api/v1/auth/me', token);
+  assert.equal(after.statusCode, 401);
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Auth must honour current DB status even when a previously issued JWT exists
+// ───────────────────────────────────────────────────────────────────────────
+test('auth: suspended account cannot use an old access token', async () => {
+  const { token, id } = await registerUser(newEmail());
+  const before = await get('/api/v1/auth/me', token);
+  assert.equal(before.statusCode, 200);
+
+  db().prepare("UPDATE users SET status = 'suspended' WHERE id = ?").run(id);
+  const blocked = await get('/api/v1/auth/me', token);
+  assert.equal(blocked.statusCode, 401);
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// RAG: user documents never leak to another authenticated user
+// ───────────────────────────────────────────────────────────────────────────
+test('rag: user-private knowledge is isolated by owner', async () => {
+  const a = await registerUser(newEmail());
+  const b = await registerUser(newEmail());
+  const unique = 'ПРИВАТНЫЙ_ТЕСТОВЫЙ_МАРКЕР_' + Date.now();
+
+  const ingest = await post('/api/v1/rag/ingest', {
+    source: 'user',
+    source_name: 'Личные заметки',
+    source_url: null,
+    title: unique,
+    text: unique + ' содержит закрытую информацию владельца и используется только для проверки изоляции.',
+  }, a.token);
+  assert.equal(ingest.statusCode, 201);
+
+  const search = await get('/api/v1/rag/search?q=' + encodeURIComponent(unique), b.token);
+  assert.equal(search.statusCode, 200);
+  assert.ok(!(search.json().data ?? []).some((h) => h.document?.title === unique));
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Reminder worker: due rows are promoted without waiting for a UI read
+// ───────────────────────────────────────────────────────────────────────────
+test('notifications: global reminder worker promotes due reminders', async () => {
+  const { id, token } = await registerUser(newEmail());
+  const reminderId = 'rem-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  const message = 'worker-check-' + reminderId;
+  db().prepare('INSERT INTO reminders (id, owner_id, message, remind_at, channel) VALUES (?, ?, ?, ?, ?)') 
+    .run(reminderId, id, message, Math.floor(Date.now() / 1000) - 5, 'in_app');
+
+  const { flushAllDueReminders } = await import('../../src/routes/notifications.js');
+  assert.equal(flushAllDueReminders() >= 1, true);
+
+  const list = await get('/api/v1/notifications', token);
+  assert.equal(list.statusCode, 200);
+  assert.ok((list.json().data ?? []).some((n) => n.body === message));
+});
+
