@@ -398,4 +398,56 @@ test('notifications: global reminder worker promotes due reminders', async () =>
   assert.equal(list.statusCode, 200);
   assert.ok((list.json().data ?? []).some((n) => n.body === message));
 });
+    
+// ───────────────────────────────────────────────────────────────────────────
+// SENSITIVE TOOL: BLOCKED → explicit approval → VERIFIED real action
+// ───────────────────────────────────────────────────────────────────────────
+test('AI sensitive action: approval executes marketplace application and verifies', async () => {
+  const customer = await registerUser(newEmail(), 'Заказчик');
+  const specialist = await registerUser(newEmail(), 'Специалист');
+
+  const proj = await post('/api/v1/marketplace/projects', {
+    title: 'Тестовый проект подтверждения',
+    description: 'Проект для проверки явного подтверждения чувствительного действия.',
+    budget_min: 1000, budget_max: 2000, skills: ['тестирование'],
+  }, customer.token);
+  assert.equal(proj.statusCode, 201);
+  const projectId = proj.json().id;
+
+  const conversationId = 'conv-approval-' + Date.now();
+  const actionId = 'action-approval-' + Date.now();
+  db().prepare('INSERT INTO ai_conversations (id, user_id, title) VALUES (?, ?, ?)')
+    .run(conversationId, specialist.id, 'Approval E2E');
+  db().prepare(`INSERT INTO ai_actions
+      (id, conversation_id, user_id, turn_id, tool, args_json, status, result_json, evidence, verified, human_approved)
+      VALUES (?, ?, ?, ?, ?, ?, 'blocked', NULL, '[]', 0, 0)`)
+    .run(
+      actionId,
+      conversationId,
+      specialist.id,
+      'turn-approval',
+      'marketplace.apply',
+      JSON.stringify({
+        project_id: projectId,
+        cover_letter: 'Подтверждённый тестовый отклик',
+        proposed_price: 1500,
+      }),
+    );
+
+  const approved = await fastify.inject({
+    method: 'POST',
+    url: `/api/v1/ai/actions/${actionId}/approve`,
+    headers: auth(specialist.token),
+  });
+  assert.equal(approved.statusCode, 200, approved.json()?.message);
+  assert.equal(approved.json().status, 'succeeded');
+  assert.equal(approved.json().verified, true);
+
+  const app = db().prepare('SELECT * FROM applications WHERE id = ?').get(approved.json().result.id);
+  assert.equal(app.specialist_id, specialist.id);
+  assert.equal(app.project_id, projectId);
+
+  const stored = db().prepare('SELECT status, verified, human_approved FROM ai_actions WHERE id = ?').get(actionId);
+  assert.deepEqual(stored, { status: 'succeeded', verified: 1, human_approved: 1 });
+});
 
