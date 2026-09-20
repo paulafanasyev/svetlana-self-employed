@@ -54,6 +54,8 @@ const schema = z.object({
   // CORS: comma-separated list. Include the production domain + GitHub Pages origin.
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   CORS_ORIGINS: z.string().default(''),
+  // Public SPA origin used by GitHub Pages while the primary domain is unavailable.
+  GITHUB_PAGES_ORIGIN: z.string().url().default('https://paulafanasyev.github.io'),
 
   // AI providers (§30). Any subset may be configured; absent = provider disabled.
   ATRIA_API_KEY: z.string().optional(),
@@ -112,9 +114,12 @@ export const config = Object.freeze({
   // file named ":memory:" and break in-memory test databases.
   DB_PATH: parsed.data.DB_PATH === ':memory:' ? ':memory:' : resolve(__dirname, '../', parsed.data.DB_PATH),
   STORAGE_DIR: resolve(__dirname, '../', parsed.data.STORAGE_DIR),
-  corsOrigins: parsed.data.CORS_ORIGINS
-    ? parsed.data.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
-    : [parsed.data.WEB_ORIGIN],
+  corsOrigins: [...new Set([
+    ...(parsed.data.CORS_ORIGINS
+      ? parsed.data.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
+      : [parsed.data.WEB_ORIGIN]),
+    parsed.data.GITHUB_PAGES_ORIGIN,
+  ])],
   isProd: parsed.data.NODE_ENV === 'production',
   isTest: parsed.data.NODE_ENV === 'test',
 });
