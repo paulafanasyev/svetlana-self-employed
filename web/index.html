@@ -39,6 +39,21 @@
     </script>
 
     <meta name="theme-color" content="#4c1d95" />
+
+    <!-- SPA deep-link restore (§3): the GitHub Pages 404.html fallback stores the
+         intended URL, then loads the app shell from the base path (HTTP 200).
+         This runs before the module bundle so the router sees the real path. -->
+    <script>
+      (function () {
+        try {
+          var target = sessionStorage.redirect;
+          if (target && target !== location.href) {
+            delete sessionStorage.redirect;
+            history.replaceState(null, '', target);
+          }
+        } catch (e) { /* sessionStorage unavailable — no-op */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

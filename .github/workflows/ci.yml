@@ -81,9 +81,38 @@ jobs:
           VITE_BASE_PATH: '/${{ github.event.repository.name }}/'
           VITE_API_URL: '/api/v1'
       - name: Add SPA deep-link fallback (404.html)
+        # GitHub Pages serves 404.html for unknown paths. We must NOT just copy
+        # index.html (that keeps the 404 status and breaks deep links). Instead
+        # the 404 page stores the intended URL and redirects to the base path,
+        # which returns 200; index.html then restores the original URL client-side.
         run: |
-          cp web/dist/index.html web/dist/404.html
-          echo "Added 404.html = index.html for client-side deep links"
+          cat > web/dist/404.html <<'HTMLEOF'
+          <!DOCTYPE html>
+          <html lang="ru">
+            <head>
+              <meta charset="UTF-8" />
+              <title>Мир Самозанятых</title>
+              <script>
+                // Preserve the deep link, then load the app shell from the
+                // deployment base path (HTTP 200). index.html restores the URL.
+                (function () {
+                  try { sessionStorage.redirect = location.href; } catch (e) {}
+                  location.replace('@@PAGES_BASE@@');
+                })();
+              </script>
+            </head>
+            <body></body>
+          </html>
+          HTMLEOF
+          # Inject the real base path so the redirect targets this deployment.
+          # Must be an absolute path ('/<repo>/'): a relative URL would resolve
+          # against the current deep link and land in the wrong directory.
+          python3 - <<'PYEOF'
+          import pathlib
+          p = pathlib.Path('web/dist/404.html')
+          p.write_text(p.read_text().replace("@@PAGES_BASE@@", "/${{ github.event.repository.name }}/"))
+          PYEOF
+          echo "404.html: deep-link preserve + redirect to base path"
       - name: Add canonical-URL override for GitHub Pages
         run: |
           # On the root domain the canonical is https://мир-самозанятых.рф/.
