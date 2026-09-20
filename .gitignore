@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+*/node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+**/dist/
+**/build/
+*.tsbuildinfo
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+android/app/debug/
+android/app/release/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Environment & secrets
+.env
+.env.local
+.env.production
+.env.*.local
+*.pem
+*.key
+secret*.json
+google-services.json
+
+# Database
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+data/*.db
+!backend/migrations/**/*.sql
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+*.swp
+*.swo
+
+# Logs & coverage
+logs/
+*.log
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# OS
+Thumbs.db

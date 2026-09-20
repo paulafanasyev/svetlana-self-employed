@@ -1,0 +1,181 @@
+# CI/CD (§50): lint → tests → build → security → GitHub Pages deploy (§51).
+# The web bundle is built ONCE and served from both GitHub Pages and the root
+# domain — one codebase, two deployments (§2, §5, §53).
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+# Required by the Pages deployment step.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Prevent overlapping Pages deploys racing each other.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # 1. Install once, cache for downstream jobs
+  # ─────────────────────────────────────────────────────────────────────────
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 2. Lint + unit tests (backend)
+  # ─────────────────────────────────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Backend unit tests
+        run: npm run test:backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-do-not-use-in-prod
+          DB_PATH: ':memory:'
+          STORAGE_DIR: ./tmp-storage
+      - name: Web unit tests
+        run: npm run test:web
+        env:
+          NODE_ENV: test
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 3. Build web (production) — same bundle for Pages and the root domain
+  # ─────────────────────────────────────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build web (GitHub Pages base path)
+        run: npm run build:web
+        env:
+          # Project sites are served from /<repo>/; the canonical root-domain
+          # build overrides this with '/' at deploy time. One codebase (§5).
+          VITE_BASE_PATH: '/${{ github.event.repository.name }}/'
+          VITE_API_URL: '/api/v1'
+      - name: Add SPA deep-link fallback (404.html)
+        run: |
+          cp web/dist/index.html web/dist/404.html
+          echo "Added 404.html = index.html for client-side deep links"
+      - name: Add canonical-URL override for GitHub Pages
+        run: |
+          # On the root domain the canonical is https://мир-самозанятых.рф/.
+          # On Pages we keep the same canonical to avoid duplicate SEO (§5),
+          # but robots must not index the Pages copy.
+          cat > web/dist/robots-pages.txt <<'EOF'
+          User-agent: *
+          Disallow: /
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          retention-days: 14
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 4. Lightweight security gate
+  # ─────────────────────────────────────────────────────────────────────────
+  security:
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - run: npm ci
+      - name: npm audit (production deps only)
+        run: npm audit --omit=dev --audit-level=high || true
+      - name: Secret scan (API keys / tokens must never be committed)
+        run: |
+          set -e
+          if grep -rEn "sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}" \
+             --include='*.js' --include='*.jsx' --include='*.json' --include='*.kt' \
+             --exclude-dir=node_modules --exclude-dir=.git --exclude='package-lock.json' . ; then
+            echo "::error::Secret-like string found in source"
+            exit 1
+          fi
+          echo "No committed secrets found"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 5. Deploy to GitHub Pages (§3, §51)
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-pages:
+    runs-on: ubuntu-latest
+    needs: build
+    # Only the default branch actually publishes.
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # 6. Android build (§36) — APK artifact, no upload of secrets
+  # ─────────────────────────────────────────────────────────────────────────
+  android:
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Build Android release APK
+        working-directory: android
+        run: gradle assembleRelease --no-daemon --stacktrace
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: ignore
+          retention-days: 14

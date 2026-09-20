@@ -1,0 +1,22 @@
+{
+  "name": "web",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Единый web-клиент Мир Самозанятых — одна кодовая база для мир-самозанятых.рф и GitHub Pages",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test --test-concurrency=1 tests/*.test.js"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}

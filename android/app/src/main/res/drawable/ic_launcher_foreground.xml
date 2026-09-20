@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Стилизованная марка: фиолетовый круг с инициалом «С» (Светлана) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#8B5CF6" android:pathData="M54,18 m-28,0 a28,28 0 1,0 56,0 a28,28 0 1,0 -56,0 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M46,44 m-8,10 a10,10 0 1,1 20,0 a10,10 0 1,1 -20,0 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M66,48 m-6,8 a8,8 0 1,1 16,0 a8,8 0 1,1 -16,0 Z" />
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="4"
+        android:pathData="M40,72 Q54,82 68,72" android:fillColor="#00000000" />
+</vector>
