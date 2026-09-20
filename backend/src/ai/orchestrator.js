@@ -217,6 +217,7 @@ export async function converse({ userId, message, conversationId = null, approve
     emotion,
     emotion_meta: emotionMeta,
     actions: state.actions.map((a) => ({
+      id: a.id,
       tool: a.tool,
       status: a.status,
       verified: Boolean(a.verified),
