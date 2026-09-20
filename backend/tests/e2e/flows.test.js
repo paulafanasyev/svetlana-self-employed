@@ -448,6 +448,8 @@ test('AI sensitive action: approval executes marketplace application and verifie
   assert.equal(app.project_id, projectId);
 
   const stored = db().prepare('SELECT status, verified, human_approved FROM ai_actions WHERE id = ?').get(actionId);
-  assert.deepEqual(stored, { status: 'succeeded', verified: 1, human_approved: 1 });
+  assert.equal(stored.status, 'succeeded');
+  assert.equal(stored.verified, 1);
+  assert.equal(stored.human_approved, 1);
 });
 
