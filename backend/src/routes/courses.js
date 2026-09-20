@@ -31,7 +31,7 @@ export default async function courseRoutes(fastify) {
     const { limit, offset } = paginationSchema.parse(request.query ?? {});
     const format = String(request.query?.format ?? '');
     const q = String(request.query?.q ?? '').trim();
-    let sql = `SELECT c.*, u.email AS author_email FROM courses c JOIN users u ON u.id = c.author_id
+    let sql = `SELECT c.* FROM courses c
                WHERE c.is_published = 1`;
     const params = [];
     if (format) { sql += ' AND c.format = ?'; params.push(format); }
@@ -50,8 +50,7 @@ export default async function courseRoutes(fastify) {
 
   fastify.get('/:id', async (request, reply) => {
     const row = db()
-      .prepare(`SELECT c.*, u.email AS author_email FROM courses c JOIN users u ON u.id = c.author_id
-                WHERE c.id = ?`)
+      .prepare('SELECT * FROM courses WHERE id = ?')
       .get(request.params.id);
     if (!row || (!row.is_published && row.author_id !== request.user.id)) {
       return sendError(reply, 404, 'not_found', 'Курс не найден');
@@ -161,8 +160,7 @@ export default async function courseRoutes(fastify) {
   // ---------- Experts / training centers (public profiles) ----------
   fastify.get('/experts', async (request, reply) => {
     const rows = db()
-      .prepare(`SELECT e.*, u.email FROM experts e JOIN users u ON u.id = e.user_id
-                ORDER BY e.is_verified DESC, e.created_at DESC LIMIT 50`)
+      .prepare('SELECT * FROM experts ORDER BY is_verified DESC, created_at DESC LIMIT 50')
       .all();
     return { data: rows };
   });
