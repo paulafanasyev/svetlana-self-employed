@@ -64,7 +64,22 @@ export async function buildServer() {
   });
 
   await fastify.register(helmet, {
-    contentSecurityPolicy: false, // SPA needs inline styles; CSP is set at the CDN layer
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'self'"],
+        formAction: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        styleSrcAttr: ["'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'", config.GITHUB_PAGES_ORIGIN, config.WEB_ORIGIN, "https://mir-samozanyatykh-api-frankfurt.onrender.com"],
+        fontSrc: ["'self'", "data:", "https:"],
+        workerSrc: ["'self'", "blob:"],
+      },
+    },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
 
