@@ -63,8 +63,11 @@ export default async function paymentRoutes(fastify) {
       const order = db().prepare('SELECT * FROM orders WHERE id = ?').get(body.order_id);
       if (!order) return sendError(reply, 404, 'not_found', 'Заказ не найден');
       // The buyer pays; the seller receives.
-      if (order.buyer_id !== request.user.id && order.seller_id !== request.user.id) {
-        return sendError(reply, 403, 'forbidden', 'Нет доступа к заказу');
+      if (order.buyer_id !== request.user.id) {
+        return sendError(reply, 403, 'forbidden', 'Оплачивать заказ может только покупатель');
+      }
+      if (order.status !== 'created') {
+        return sendError(reply, 409, 'invalid_state', `Заказ нельзя оплатить в статусе ${order.status}`);
       }
       amount = order.amount;
       currency = order.currency;
@@ -111,18 +114,19 @@ export default async function paymentRoutes(fastify) {
         returnUrl: body.return_url,
       });
 
+      const providerState = result.state ?? (result.success ? 'succeeded' : 'failed');
       db().transaction(() => {
         db()
           .prepare(`UPDATE payments SET status = ?, provider_txn_id = ?, evidence = ?, failure_reason = ?, updated_at = unixepoch()
                     WHERE id = ?`)
           .run(
-            result.success ? 'succeeded' : 'failed',
+            providerState,
             result.providerTransactionId ?? null,
             JSON.stringify(result.evidence ?? {}),
-            result.success ? null : (result.errorMessage ?? null),
+            providerState === 'failed' ? (result.errorMessage ?? null) : null,
             paymentId
           );
-        if (result.success && body.order_id) {
+        if (providerState === 'succeeded' && body.order_id) {
           db()
             .prepare("UPDATE orders SET status = 'paid', updated_at = unixepoch() WHERE id = ?")
             .run(body.order_id);
@@ -132,18 +136,27 @@ export default async function paymentRoutes(fastify) {
                       ON CONFLICT(user_id) DO UPDATE SET available = available + ?, updated_at = unixepoch()`)
             .run(sellerId, sellerAmount, currency, sellerAmount);
         }
-        if (result.success && body.invoice_id) {
+        if (providerState === 'succeeded' && body.invoice_id) {
           db()
             .prepare("UPDATE invoices SET status = 'paid', paid_at = unixepoch(), updated_at = unixepoch() WHERE id = ?")
             .run(body.invoice_id);
         }
       });
 
-      auditRequest(request, result.success ? 'payment_succeeded' : 'payment_failed', 'payment', paymentId, {
-        amount, provider: provider.name, commission_percent: commissionPercent,
-      });
+      auditRequest(request,
+        providerState === 'succeeded' ? 'payment_succeeded' : providerState === 'pending' ? 'payment_pending' : 'payment_failed',
+        'payment',
+        paymentId,
+        { amount, provider: provider.name, commission_percent: commissionPercent }
+      );
 
-      if (!result.success) {
+      if (providerState === 'pending') {
+        return reply.code(202).send({
+          ...db().prepare('SELECT * FROM payments WHERE id = ?').get(paymentId),
+          message: 'Платёж ожидает подтверждения провайдера.',
+        });
+      }
+      if (providerState === 'failed') {
         return sendError(reply, 402, 'payment_failed', result.errorMessage ?? 'Платёж не прошёл', {
           status: 'FAILED',
           payment_id: paymentId,
