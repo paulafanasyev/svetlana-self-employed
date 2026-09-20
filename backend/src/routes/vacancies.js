@@ -29,7 +29,7 @@ export default async function vacancyRoutes(fastify) {
   fastify.get('/', async (request, reply) => {
     const { limit, offset } = paginationSchema.parse(request.query ?? {});
     const q = String(request.query?.q ?? '').trim();
-    let sql = `SELECT v.*, u.email AS employer_email FROM vacancies v JOIN users u ON u.id = v.employer_id
+    let sql = `SELECT v.* FROM vacancies v
                WHERE v.status = 'active'`;
     const params = [];
     if (q) { sql += ' AND (v.title LIKE ? OR v.description LIKE ? OR v.city LIKE ?)'; params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
@@ -47,8 +47,7 @@ export default async function vacancyRoutes(fastify) {
 
   fastify.get('/:id', async (request, reply) => {
     const row = db()
-      .prepare(`SELECT v.*, u.email AS employer_email FROM vacancies v JOIN users u ON u.id = v.employer_id
-                WHERE v.id = ?`)
+      .prepare('SELECT * FROM vacancies WHERE id = ?')
       .get(request.params.id);
     if (!row) return sendError(reply, 404, 'not_found', 'Вакансия не найдена');
     return { ...row, skills: readJson(row.skills_json, []) };
