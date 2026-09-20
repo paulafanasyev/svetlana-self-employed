@@ -30,6 +30,7 @@ class TestProvider {
     if (amount > this.ceiling) {
       return {
         success: false,
+        state: 'failed',
         providerTransactionId: null,
         errorMessage: `Тестовый провайдер отклоняет суммы выше ${this.ceiling} (симуляция отказа)`,
         evidence: { provider: 'test', simulated: true, ceiling: this.ceiling, idempotencyKey },
@@ -37,6 +38,7 @@ class TestProvider {
     }
     return {
       success: true,
+      state: 'succeeded',
       providerTransactionId: txn,
       evidence: {
         provider: 'test',
@@ -79,11 +81,17 @@ class YooKassaProvider {
       }),
     });
     const body = await res.json().catch(() => ({}));
-    const succeeded = body.status === 'succeeded' || body.status === 'waiting_for_capture';
+    const state =
+      body.status === 'succeeded'
+        ? 'succeeded'
+        : ['pending', 'waiting_for_capture'].includes(body.status)
+          ? 'pending'
+          : 'failed';
     return {
-      success: succeeded,
+      success: state === 'succeeded',
+      state,
       providerTransactionId: body.id ?? null,
-      errorMessage: succeeded ? null : (body.description ?? `HTTP ${res.status}`),
+      errorMessage: state === 'failed' ? (body.description ?? `HTTP ${res.status}`) : null,
       evidence: { provider: 'yookassa', raw_status: body.status ?? null, http_status: res.status },
     };
   }
