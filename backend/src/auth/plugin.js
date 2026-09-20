@@ -10,6 +10,7 @@
  */
 import fp from 'fastify-plugin';
 import { verifyAccessToken } from './crypto.js';
+import { db } from '../db/client.js';
 
 /**
  * Registered with fastify-plugin so the decorators land on the parent scope and
@@ -24,7 +25,14 @@ export default fp(async function authPlugin(fastify) {
     const m = /^Bearer\s+(.+)$/i.exec(header);
     if (!m) return null;
     const claims = verifyAccessToken(m[1].trim());
-    return claims;
+    if (!claims?.sub) return null;
+
+    // Access decisions use current DB state, not stale JWT role/status claims.
+    const user = db()
+      .prepare('SELECT id, email, role, status FROM users WHERE id = ?')
+      .get(claims.sub);
+    if (!user || user.status !== 'active') return null;
+    return user;
   });
 
   fastify.decorate('requireAuth', async (request, reply) => {
@@ -33,7 +41,7 @@ export default fp(async function authPlugin(fastify) {
       reply.code(401).send({ error: 'unauthorized', message: 'Требуется вход в систему' });
       return reply;
     }
-    request.user = { id: claims.sub, email: claims.email, role: claims.role };
+    request.user = { id: claims.id, email: claims.email, role: claims.role, status: claims.status };
     return request.user;
   });
 
@@ -51,7 +59,7 @@ export default fp(async function authPlugin(fastify) {
 
   fastify.decorate('optionalAuth', async (request) => {
     const claims = await fastify.authenticate(request);
-    if (claims) request.user = { id: claims.sub, email: claims.email, role: claims.role };
+    if (claims) request.user = { id: claims.id, email: claims.email, role: claims.role, status: claims.status };
     return request.user;
   });
 }, { name: 'mir-auth', fastify: '5.x' });
