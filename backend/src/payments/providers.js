@@ -74,7 +74,7 @@ class YooKassaProvider {
         'Idempotence-Key': idempotencyKey,
       },
       body: JSON.stringify({
-        amount: { value: (amount / 100).toFixed(2), currency: currency.toUpperCase() },
+        amount: { value: Number(amount).toFixed(2), currency: currency.toUpperCase() },
         capture: true,
         confirmation: { type: 'redirect', return_url: returnUrl ?? config.WEB_ORIGIN },
         description: String(description ?? '').slice(0, 128),
