@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mirsamopro.network.ApiClient
+import com.mirsamopro.network.AuthApi
 import com.mirsamopro.network.ApiException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
