@@ -42,7 +42,7 @@ import vacancyRoutes from './routes/vacancies.js';
 import courseRoutes from './routes/courses.js';
 import grantRoutes from './routes/grants.js';
 import competitorRoutes from './routes/competitors.js';
-import notificationRoutes from './routes/notifications.js';
+import notificationRoutes, { flushAllDueReminders } from './routes/notifications.js';
 import ragRoutes from './routes/rag.js';
 import aiRoutes from './routes/ai.js';
 import adminRoutes from './routes/admin.js';
@@ -167,7 +167,19 @@ export async function startServer() {
   await fastify.listen({ port: config.PORT, host: config.HOST });
   fastify.log.info(`🚀 API ready on http://${config.HOST}:${config.PORT}`);
 
+  // Keep reminder promotion independent from UI reads.
+  const reminderTimer = setInterval(() => {
+    try {
+      const promoted = flushAllDueReminders();
+      if (promoted) fastify.log.info({ promoted }, 'due reminders promoted');
+    } catch (err) {
+      fastify.log.error({ err }, 'reminder worker failed');
+    }
+  }, 30_000);
+  reminderTimer.unref?.();
+
   const shutdown = async (signal) => {
+    clearInterval(reminderTimer);
     fastify.log.info({ signal }, 'shutting down');
     await fastify.close();
     closeDb();
