@@ -28,7 +28,11 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(onSuccess: () -> Unit, onLogin: () -> Unit) {
+fun RegisterScreen(
+    onRegister: suspend (String, String, String) -> Unit,
+    onSuccess: () -> Unit,
+    onLogin: () -> Unit,
+) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -44,12 +48,12 @@ fun RegisterScreen(onSuccess: () -> Unit, onLogin: () -> Unit) {
         ) {
             Text("После регистрации вы попадёте в рабочее пространство")
             OutlinedTextField(value = name, onValueChange = { name = it },
-                label = { Text("Как вас зовут") }, singleLine = true, modifier = Modifier.fillMaxSize())
+                label = { Text("Как вас зовут") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = email, onValueChange = { email = it },
-                label = { Text("Email") }, singleLine = true, modifier = Modifier.fillMaxSize())
+                label = { Text("Email") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = password, onValueChange = { password = it },
                 label = { Text("Пароль (мин. 8)") }, singleLine = true,
-                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxSize())
+                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
             error?.let { Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
 
             Button(
@@ -60,17 +64,17 @@ fun RegisterScreen(onSuccess: () -> Unit, onLogin: () -> Unit) {
                     busy = true; error = null
                     scope.launch {
                         try {
-                            withContext(Dispatchers.IO) { AuthApi.register(name.trim(), email.trim(), password) }
+                            onRegister(name.trim(), email.trim(), password)
                             onSuccess()
                         } catch (e: ApiException) { error = e.message }
                         catch (e: Exception) { error = "Сеть недоступна: ${e.message}" }
                         finally { busy = false }
                     }
                 },
-                enabled = !busy, modifier = Modifier.fillMaxSize(),
+                enabled = !busy, modifier = Modifier.fillMaxWidth(),
             ) { Text(if (busy) "Создаём…" else "Создать аккаунт") }
 
-            Button(onClick = onLogin, modifier = Modifier.fillMaxSize()) { Text("Уже есть аккаунт? Войти") }
+            Button(onClick = onLogin, modifier = Modifier.fillMaxWidth()) { Text("Уже есть аккаунт? Войти") }
         }
     }
 }
