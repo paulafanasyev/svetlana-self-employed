@@ -3,6 +3,7 @@
  * actions. One endpoint, one Светлана, shared by web and Android.
  */
 import { z } from 'zod';
+import { auditRequest } from '../plugins/audit.js';
 import { nanoid } from 'nanoid';
 import { db } from '../db/client.js';
 import { converse } from '../ai/orchestrator.js';
