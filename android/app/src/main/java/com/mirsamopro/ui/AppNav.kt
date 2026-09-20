@@ -32,18 +32,20 @@ sealed class Routes(val route: String) {
 @Composable
 fun AppNav(
     isLoggedIn: Boolean,
-    onLogin: (String, String) -> Unit,
-    onRegister: (String, String, String) -> Unit,
+    onLogin: suspend (String, String) -> Unit,
+    onRegister: suspend (String, String, String) -> Unit,
     onLogout: () -> Unit,
 ) {
     var current by remember { mutableStateOf(if (isLoggedIn) Routes.Home.route else Routes.Login.route) }
 
     when (current) {
         Routes.Login.route -> LoginScreen(
+            onLogin = onLogin,
             onSuccess = { current = Routes.Home.route },
             onRegister = { current = Routes.Register.route },
         )
         Routes.Register.route -> RegisterScreen(
+            onRegister = onRegister,
             onSuccess = { current = Routes.Home.route },
             onLogin = { current = Routes.Login.route },
         )
