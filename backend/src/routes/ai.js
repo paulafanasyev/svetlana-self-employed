@@ -108,6 +108,9 @@ export default async function aiRoutes(fastify) {
       approvedTools: new Set([row.tool]),
     }, row.tool, args);
 
+    auditRequest(request, record.status === 'succeeded' && record.verified ? 'approve_verified' : 'approve_action',
+      'ai_action', row.id, { tool: row.tool, status: record.status, verified: Boolean(record.verified) });
+
     db()
       .prepare(`UPDATE ai_actions
                 SET status = ?, result_json = ?, evidence = ?, verified = ?,
