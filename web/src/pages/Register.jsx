@@ -9,7 +9,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     display_name: '', email: '', password: '', role: 'user',
-    consent: false,
+    consent_personal_data: false, accept_terms: false, consent_ai_processing: false,
   });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -17,8 +17,8 @@ export default function Register() {
   const submit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (!form.consent) {
-      setError('Нужно согласие на обработку данных — это требование закона.');
+    if (!form.consent_personal_data || !form.accept_terms) {
+      setError('Нужно принять Соглашение пользователя и дать согласие на обработку персональных данных.');
       return;
     }
     setBusy(true);
@@ -28,6 +28,9 @@ export default function Register() {
         email: form.email,
         password: form.password,
         role: form.role,
+        consent_personal_data: form.consent_personal_data,
+        accept_terms: form.accept_terms,
+        consent_ai_processing: form.consent_ai_processing,
       });
       navigate('/app');
     } catch (err) {
@@ -75,11 +78,21 @@ export default function Register() {
               <option value="training_center">Учебный центр</option>
             </select>
           </div>
-          <div className="field">
-            <label className="row" style={{ gap: 8, textTransform: 'none', fontWeight: 400 }}>
-              <input type="checkbox" style={{ width: 'auto' }} checked={form.consent}
-                onChange={(e) => setForm({ ...form, consent: e.target.checked })} />
-              <span className="small">Я согласен на обработку персональных данных и использование AI.</span>
+          <div className="field site-register-consents">
+            <label className="row" style={{ gap: 8, textTransform: 'none', fontWeight: 400, alignItems: 'flex-start' }}>
+              <input type="checkbox" style={{ width: 'auto', marginTop: 3 }} checked={form.consent_personal_data}
+                onChange={(e) => setForm({ ...form, consent_personal_data: e.target.checked })} />
+              <span className="small">Я даю согласие на обработку персональных данных в соответствии с <Link to="/privacy">Политикой конфиденциальности</Link>.</span>
+            </label>
+            <label className="row" style={{ gap: 8, textTransform: 'none', fontWeight: 400, alignItems: 'flex-start' }}>
+              <input type="checkbox" style={{ width: 'auto', marginTop: 3 }} checked={form.accept_terms}
+                onChange={(e) => setForm({ ...form, accept_terms: e.target.checked })} />
+              <span className="small">Я принимаю <Link to="/terms">Соглашение пользователя</Link>.</span>
+            </label>
+            <label className="row" style={{ gap: 8, textTransform: 'none', fontWeight: 400, alignItems: 'flex-start' }}>
+              <input type="checkbox" style={{ width: 'auto', marginTop: 3 }} checked={form.consent_ai_processing}
+                onChange={(e) => setForm({ ...form, consent_ai_processing: e.target.checked })} />
+              <span className="small">Разрешаю использовать мои данные в AI-функциях Светланы, когда это необходимо для выбранной функции.</span>
             </label>
           </div>
           <button className="btn btn-primary" type="submit" disabled={busy} style={{ width: '100%' }}>
