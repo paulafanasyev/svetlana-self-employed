@@ -115,8 +115,8 @@ export const api = {
 
 /** Auth */
 export const auth = {
-  register: ({ email, password, display_name, role }) =>
-    api.post('/auth/register', { email, password, display_name, role, consent_ai_processing: true }),
+  register: ({ email, password, display_name, role, consent_personal_data, accept_terms, consent_ai_processing = false }) =>
+    api.post('/auth/register', { email, password, display_name, role, consent_personal_data, accept_terms, consent_ai_processing }),
   login: ({ email, password }) => api.post('/auth/login', { email, password }),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
