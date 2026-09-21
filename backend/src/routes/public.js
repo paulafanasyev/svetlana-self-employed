@@ -7,7 +7,7 @@
 import { paginationSchema } from '../lib/http.js';
 import { db } from '../db/client.js';
 
-const TRUD_API = 'http://opendata.trudvsem.ru/api/v1/vacancies';
+const TRUD_API = 'https://opendata.trudvsem.ru/api/v1/vacancies';
 
 function asText(value) {
   return value == null ? '' : String(value);
@@ -32,51 +32,60 @@ function extractVacancies(payload) {
   ].filter(Boolean);
 
   for (const candidate of candidates) {
-    const rows = Array.isArray(candidate) ? candidate : candidate?.vacancy;
-    if (Array.isArray(rows)) return rows.map(unwrapVacancy);
+    if (Array.isArray(candidate)) return candidate.map(unwrapVacancy);
+    if (Array.isArray(candidate?.vacancy)) return candidate.vacancy.map(unwrapVacancy);
   }
   return [];
 }
 
 function mapTrudVacancy(raw, index) {
   const v = unwrapVacancy(raw);
-  const location = v.location ?? v.address ?? v.region ?? {};
-  const company = v.company ?? v.employer ?? {};
-  const salary = v.compensation ?? v.salary ?? {};
+  const addresses = v.addresses?.address;
+  const firstAddress = Array.isArray(addresses) ? addresses[0] : addresses;
+  const company = v.company ?? {};
+  const region = v.region ?? {};
   return {
     id: firstNonEmpty(v.id, v.vacancyId, String(index)),
-    title: firstNonEmpty(v.jobName, v.title, v.profession, v.name) ?? 'Вакансия',
-    description: firstNonEmpty(v.jobDescription, v.description, v.requirements, v.duty) ?? '',
-    company: firstNonEmpty(company.companyName, company.name, v.companyName, v.employerName),
-    city: firstNonEmpty(location.city, location.addressCity, v.city),
-    region: firstNonEmpty(location.regionName, location.region, v.regionName, v.region),
-    salary_from: Number(salary.from ?? salary.min ?? v.salaryFrom ?? 0) || null,
-    salary_to: Number(salary.to ?? salary.max ?? v.salaryTo ?? 0) || null,
-    url: firstNonEmpty(v.vacancyUrl, v.url, v.sourceUrl) ?? 'https://trudvsem.ru/vacancy/search',
+    title: firstNonEmpty(v['job-name'], v.jobName, v.title, v.profession, v.name) ?? 'Вакансия',
+    description: firstNonEmpty(v['job-description'], v.jobDescription, v.description, v.duty, v.requirements) ?? '',
+    company: firstNonEmpty(company.name, company.companyName, v.companyName, v.employerName),
+    city: firstNonEmpty(firstAddress?.location, v.city),
+    region: firstNonEmpty(region.name, v.regionName, v.region),
+    salary_from: Number(v.salary_min ?? v.salaryFrom ?? v.compensation?.from ?? 0) || null,
+    salary_to: Number(v.salary_max ?? v.salaryTo ?? v.compensation?.to ?? 0) || null,
+    currency: firstNonEmpty(v.currency) ?? 'RUB',
+    url: firstNonEmpty(v.vac_url, v.vacancyUrl, v.url, v.sourceUrl) ?? 'https://trudvsem.ru/vacancy/search',
   };
 }
 
 async function fetchTrudVacancies({ city, q, limit = 12 }) {
+  if (!city && !q) return { data: [], unavailable: false, total: null };
+
   const params = new URLSearchParams();
   params.set('limit', String(Math.min(Math.max(limit * 2, 12), 100)));
   params.set('offset', '1');
   if (q) params.set('text', city ? city + ' ' + q : q);
-  else if (city) params.set('text', city);
+  else params.set('text', city);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 7000);
   try {
     const response = await fetch(TRUD_API + '?' + params.toString(), {
-      headers: { accept: 'application/json' },
+      headers: {
+        accept: 'application/json',
+        'user-agent': 'Mir-Samozanyatykh/1.0',
+      },
       signal: controller.signal,
     });
     if (!response.ok) {
       return { data: [], unavailable: true, reason: 'HTTP ' + response.status };
     }
+
     const payload = await response.json();
     const data = extractVacancies(payload)
       .map(mapTrudVacancy)
       .filter((row) => row.title);
+
     return {
       data: data.slice(0, limit),
       unavailable: false,
@@ -103,7 +112,9 @@ export default async function publicRoutes(fastify) {
       offset: 0,
     });
 
-    let vacancySql = "SELECT v.* FROM vacancies v WHERE v.status = 'active'";
+    let vacancySql =
+      "SELECT v.id, v.title, v.description, v.salary_from, v.salary_to, v.currency, v.city, v.remote, v.created_at " +
+      "FROM vacancies v WHERE v.status = 'active'";
     const vacancyParams = [];
     if (city) {
       vacancySql += ' AND (v.city LIKE ? OR v.remote = 1)';
@@ -114,7 +125,9 @@ export default async function publicRoutes(fastify) {
       vacancyParams.push('%' + q + '%', '%' + q + '%');
     }
     vacancySql += ' ORDER BY v.created_at DESC LIMIT ?';
-    const localVacancies = db().prepare(vacancySql).all(...vacancyParams, limit);
+    const localVacancies = city || q
+      ? db().prepare(vacancySql).all(...vacancyParams, limit)
+      : [];
 
     const courseSql =
       "SELECT c.id, c.title, c.description, c.price, c.currency, c.format, " +
@@ -124,9 +137,11 @@ export default async function publicRoutes(fastify) {
       "AND (? = '' OR p.city LIKE ?) " +
       "AND (? = '' OR c.title LIKE ? OR c.description LIKE ?) " +
       "ORDER BY c.created_at DESC LIMIT ?";
-    const courses = db().prepare(courseSql).all(
-      city, '%' + city + '%', q, '%' + q + '%', '%' + q + '%', limit,
-    );
+    const courses = city
+      ? db().prepare(courseSql).all(
+        city, '%' + city + '%', q, '%' + q + '%', '%' + q + '%', limit,
+      )
+      : [];
 
     let grantSql =
       "SELECT id, kind, title, description, funder, region, amount_min, amount_max, " +
@@ -136,6 +151,9 @@ export default async function publicRoutes(fastify) {
     if (region) {
       grantSql += ' AND (region = ? OR funder = ? OR region IS NULL)';
       grantParams.push(region, 'Федеральный');
+    } else {
+      grantSql += ' AND (funder = ? OR region IS NULL)';
+      grantParams.push('Федеральный');
     }
     if (q) {
       grantSql += ' AND (title LIKE ? OR description LIKE ?)';
