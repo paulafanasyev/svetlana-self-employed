@@ -107,6 +107,63 @@ async function fetchTrudVacancies({ city, q, limit = 12 }) {
 }
 
 export default async function publicRoutes(fastify) {
+  // Public Светлана chat: no account is required. This route is intentionally
+  // stateless and tool-free; it cannot access personal CRM data or execute
+  // account actions. Provider credentials stay server-side.
+  fastify.post('/chat', async (request, reply) => {
+    const body = z.object({
+      message: z.string().trim().min(1).max(4000),
+      history: z.array(
+        z.object({
+          role: z.enum(['user', 'assistant']),
+          content: z.string().min(1).max(4000),
+        })
+      ).max(10).default([]),
+    }).safeParse(request.body ?? {});
+
+    if (!body.success) {
+      return reply.code(400).send({
+        error: 'validation_error',
+        message: 'Некорректное сообщение',
+      });
+    }
+
+    try {
+      const result = await chatWithFallback({
+        messages: [
+          {
+            role: 'system',
+            content: [
+              'Ты Светлана — публичный AI-консультант проекта «Мир Самозанятых».',
+              'Ты работаешь без авторизации и без доступа к данным пользователя.',
+              'В публичном режиме не создавай клиентов, задачи, документы, платежи или другие личные записи.',
+              'Не проси пароли, коды подтверждения, банковские реквизиты или секретные ключи.',
+              'Отвечай на вопросы о проекте, возможностях платформы и общих вопросах о самозанятости.',
+              'Для актуальных правовых и налоговых деталей не выдавай непроверенные сведения за официальные; направляй пользователя к официальным источникам.',
+              'Не упоминай название, URL, модель или внутренние сведения внешнего AI-провайдера.',
+            ].join(' '),
+          },
+          ...body.data.history.slice(-10),
+          { role: 'user', content: body.data.message },
+        ],
+        tools: [],
+        temperature: 0.4,
+        maxTokens: 800,
+      });
+
+      return reply.send({
+        content: result.content || 'Я не смогла сформировать ответ. Попробуйте ещё раз.',
+      });
+    } catch (error) {
+      request.log.error({ err: error }, 'public ai chat failed');
+      return reply.code(503).send({
+        error: 'ai_unavailable',
+        message: 'Светлана временно недоступна. Попробуйте ещё раз позже.',
+      });
+    }
+  });
+
+
   fastify.post('/analytics', async (request, reply) => {
     const body = z.object({
       event_type: z.enum(['page_view', 'consent_analytics_granted']),
