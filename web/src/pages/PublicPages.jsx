@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SvetlanaAvatar } from '../components/SvetlanaAvatar.jsx';
+import PublicSvetlanaChat from './PublicSvetlanaChat.jsx';
 
 const FEATURES = [
   ['✨', 'Светлана', 'AI-оператор для задач, документов, поиска и навигации по рабочему пространству.'],
@@ -370,6 +371,7 @@ function ServicePage({ title, text, items, action = '/register' }) {
 }
 
 export default function PublicPages({ page = 'home' }) {
+  if (page === 'svetlana') return <><PageIntro eyebrow="Светлана" title="Поговорите со Светланой" text="Задайте вопрос прямо на сайте." /><PublicSvetlanaChat /></>;
   if (page === 'home') return <Home />;
   if (page === 'calculator') return <Calculator />;
   if (page === 'about') return <AboutProjectPage />;
