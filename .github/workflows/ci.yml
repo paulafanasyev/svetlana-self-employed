@@ -81,8 +81,6 @@ jobs:
           # Project sites are served from /<repo>/; the canonical root-domain
           # build overrides this with '/' at deploy time. One codebase (§5).
           VITE_BASE_PATH: '/${{ github.event.repository.name }}/'
-          VITE_API_URL: 'https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1'
-          VITE_PAGES_API_URL: 'https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1'
           VITE_PUBLIC_ORIGIN: 'https://paulafanasyev.github.io/svetlana-self-employed'
       - name: Add SPA deep-link fallback (404.html)
         # GitHub Pages serves 404.html for unknown paths. We must NOT just copy
@@ -204,7 +202,7 @@ jobs:
           java-version: '17'
       - name: Build Android release APK + AAB
         working-directory: android
-        run: gradle assembleRelease bundleRelease --no-daemon --stacktrace -PmirApiBaseUrl=https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1
+        run: gradle assembleRelease bundleRelease --no-daemon --stacktrace -PmirApiBaseUrl="${{ vars.PUBLIC_API_URL || 'https://мир-самозанятых.рф/api/v1' }}"
       - name: Verify release manifest is HTTPS-only
         run: |
           if grep -R -n 'usesCleartextTraffic="true"' android/app/src/main android/app/src/release 2>/dev/null; then
