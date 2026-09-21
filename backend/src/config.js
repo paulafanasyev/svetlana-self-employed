@@ -57,23 +57,16 @@ const schema = z.object({
   // Public SPA origin used by GitHub Pages while the primary domain is unavailable.
   GITHUB_PAGES_ORIGIN: z.string().url().default('https://paulafanasyev.github.io'),
 
-  // AI providers (§30). Any subset may be configured; absent = provider disabled.
-  ATRIA_API_KEY: z.string().optional(),
-  ATRIA_BASE_URL: z.string().url().default('https://api.atria-asi.ai/v1'),
-  ATRIA_MODEL: z.string().default('Atria-Dawn-Preview'),
-  OPENAI_API_KEY: z.string().optional(),
-  OPENAI_BASE_URL: z.string().default('https://api.openai.com/v1'),
-  OPENAI_MODEL: z.string().default('gpt-4o-mini'),
-  OPENROUTER_API_KEY: z.string().optional(),
-  OPENROUTER_BASE_URL: z.string().default('https://openrouter.ai/api/v1'),
-  OPENROUTER_MODEL: z.string().default('openai/gpt-4o-mini'),
-  LOCAL_MODEL_URL: z.string().optional(),
-  AI_PROVIDER_ORDER: z.string().default('atria,openrouter,openai,local'),
+  // Светлана runtime: model endpoint and key exist only on the server.
+  AI_API_KEY: z.string().optional(),
+  AI_BASE_URL: z.string().url().optional(),
+  AI_MODEL: z.string().default('svetlana-core'),
+  AI_PROVIDER_ORDER: z.string().default('primary,local'),
   AI_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
   AI_MAX_RETRIES: z.coerce.number().int().nonnegative().default(2),
 
   // Embeddings for RAG (optional — a deterministic hash fallback keeps RAG working offline)
-  EMBEDDING_PROVIDER: z.enum(['atria', 'openai', 'local', 'none']).default('none'),
+  EMBEDDING_PROVIDER: z.enum(['remote', 'local', 'none']).default('none'),
   EMBEDDING_DIM: z.coerce.number().int().positive().default(768),
 
   // Payments (§26). 'test' provider is allowed ONLY outside production.
