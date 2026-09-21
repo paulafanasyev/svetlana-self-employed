@@ -4,8 +4,12 @@
  * No account is required to discover local work, training and support.
  * Personal actions remain protected in their existing domain routes.
  */
+import { createHmac } from 'node:crypto';
+import { nanoid } from 'nanoid';
+import { z } from 'zod';
 import { paginationSchema } from '../lib/http.js';
 import { db } from '../db/client.js';
+import { config } from '../config.js';
 
 const TRUD_API = 'http://opendata.trudvsem.ru/api/v1/vacancies';
 
@@ -103,6 +107,58 @@ async function fetchTrudVacancies({ city, q, limit = 12 }) {
 }
 
 export default async function publicRoutes(fastify) {
+  fastify.post('/analytics', async (request, reply) => {
+    const body = z.object({
+      event_type: z.enum(['page_view', 'consent_analytics_granted']),
+      path: z.string().min(1).max(120),
+      session_id: z.string().min(8).max(120),
+      referrer_origin: z.string().max(300).nullable().optional(),
+    }).safeParse(request.body ?? {});
+
+    if (!body.success) {
+      return reply.code(400).send({ error: 'validation_error', message: 'Некорректные данные аналитического события' });
+    }
+
+    const path = '/' + body.data.path.replace(/^\/+/, '').split('?')[0].slice(0, 119);
+    let referrerOrigin = null;
+    if (body.data.referrer_origin) {
+      try {
+        const url = new URL(body.data.referrer_origin);
+        referrerOrigin = url.origin.slice(0, 300);
+      } catch {
+        referrerOrigin = null;
+      }
+    }
+
+    const sessionHash = createHmac('sha256', config.JWT_SECRET)
+      .update(body.data.session_id)
+      .digest('hex');
+
+    const moscowParts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Moscow',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(new Date());
+    const part = (name) => moscowParts.find((item) => item.type === name)?.value ?? '00';
+    const day = part('year') + '-' + part('month') + '-' + part('day');
+    const hour = Number(part('hour')) || 0;
+
+    db().prepare(
+      'INSERT INTO site_analytics_events ' +
+      '(id, event_type, path, day, hour, session_hash, referrer_origin) ' +
+      'VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(nanoid(), body.data.event_type, path, day, hour, sessionHash, referrerOrigin);
+
+    db().prepare(
+      'DELETE FROM site_analytics_events WHERE created_at < unixepoch() - 180 * 86400'
+    ).run();
+
+    reply.code(202).send({ ok: true });
+  });
+
   fastify.get('/geo', async (request) => {
     const city = String(request.query?.city ?? '').trim().slice(0, 120);
     const region = String(request.query?.region ?? '').trim().slice(0, 120);
