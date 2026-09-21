@@ -42,7 +42,11 @@ function Home() {
             <div className="site-trust-row"><span>✓ Web + Android</span><span>✓ Единый аккаунт</span><span>✓ Проверяемые действия</span></div>
           </div>
           <div className="site-hero-stage site-hero-welcome">
-            <video className="site-hero-video" autoPlay muted loop playsInline preload="metadata" poster={(import.meta.env.BASE_URL || '/') + 'svetlana-photo.jpg'} aria-label="Светлана приветствует посетителей">
+            <div className="site-hero-media-fallback" aria-label="Светлана">
+              <SvetlanaAvatar emotion="HAPPY" size={360} />
+              <span>Светлана · AI-оператор «Мира Самозанятых»</span>
+            </div>
+            <video className="site-hero-video" autoPlay muted loop playsInline preload="metadata" poster={(import.meta.env.BASE_URL || '/') + 'svetlana-photo.jpg'} aria-label="Светлана приветствует посетителей" onError={(event) => { event.currentTarget.hidden = true; event.currentTarget.closest('.site-hero-welcome')?.classList.add('is-fallback'); }}>
               <source src={(import.meta.env.BASE_URL || '/') + 'svetlana-welcome.mp4'} type="video/mp4" />
             </video>
             <div className="site-hero-video-shade" aria-hidden="true" />
