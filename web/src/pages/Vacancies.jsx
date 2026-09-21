@@ -289,7 +289,7 @@ function CandidateList({ vacancyId }) {
 function VacancyForm({ onSubmit, onCancel }) {
   const [form, setForm] = useState({
     title: '', description: '', salary_from: '', salary_to: '',
-    city: '', remote: true, skills: '',
+    city: (() => { try { return localStorage.getItem('mir-city') || ''; } catch { return ''; } })(), remote: true, skills: '',
   });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
