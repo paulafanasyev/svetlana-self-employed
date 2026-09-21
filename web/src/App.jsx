@@ -10,6 +10,8 @@ import PublicLayout from './components/PublicLayout.jsx';
 import PublicPages from './pages/PublicPages.jsx';
 import SvetlanaCapabilities from './pages/SvetlanaCapabilities.jsx';
 import RegionalHub from './pages/RegionalHub.jsx';
+import { OrganizationPage, CooperationPage } from './pages/OrganizationPages.jsx';
+import { PrivacyPolicyPage, UserAgreementPage, CookiePolicyPage } from './pages/LegalPages.jsx';
 
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -145,6 +147,11 @@ export default function App() {
     <Routes>
       <Route path="/" element={<PublicRoute page="home" />} />
       <Route path="/about" element={<PublicRoute page="about" />} />
+      <Route path="/organization" element={<PublicLayout><OrganizationPage /></PublicLayout>} />
+      <Route path="/cooperation" element={<PublicLayout><CooperationPage /></PublicLayout>} />
+      <Route path="/privacy" element={<PublicLayout><PrivacyPolicyPage /></PublicLayout>} />
+      <Route path="/terms" element={<PublicLayout><UserAgreementPage /></PublicLayout>} />
+      <Route path="/cookies" element={<PublicLayout><CookiePolicyPage /></PublicLayout>} />
       <Route path="/calculator" element={<PublicRoute page="calculator" />} />
       <Route path="/marketplace" element={<PublicRoute page="marketplace" />} />
       <Route path="/jobs" element={<PublicLayout><RegionalHub /></PublicLayout>} />
