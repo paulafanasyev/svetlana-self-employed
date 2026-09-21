@@ -1,22 +1,13 @@
 /**
- * AI provider abstraction (§30).
+ * Светлана — server-side model runtime.
  *
- *   Atria | OpenAI | OpenRouter | local
- *
- * One uniform `chat()` contract with:
- *  - fallback (provider order, skipping unconfigured providers)
- *  - retry with exponential backoff
- *  - timeout via AbortController
- *  - cost + token tracking persisted on ai_messages
- *
- * The `local` provider is a deterministic, rule-based planner — not an LLM.
- * It exists so the full Светлана pipeline (intent → tools → verification)
- * works end-to-end offline, and it is always honestly labelled as `local`
- * with zero cost. When a real provider key is configured, it takes priority.
+ * The product owns orchestration, tools, policy and verification. The
+ * underlying model endpoint is injected only through server environment
+ * variables; clients never receive credentials or provider configuration.
  */
 import { config } from '../config.js';
 
-/** OpenAI-compatible chat completions client (Atria / OpenAI / OpenRouter). */
+/** Server-side chat completions client. */
 class OpenAICompatibleProvider {
   constructor({ name, baseUrl, apiKey, model, costPer1kIn = 0, costPer1kOut = 0 }) {
     this.name = name;
@@ -347,28 +338,12 @@ export function availableProviders() {
 
 const PROVIDERS = [
   new OpenAICompatibleProvider({
-    name: 'atria',
-    baseUrl: config.ATRIA_BASE_URL,
-    apiKey: config.ATRIA_API_KEY,
-    model: config.ATRIA_MODEL,
-    costPer1kIn: 0.05,
-    costPer1kOut: 0.15,
-  }),
-  new OpenAICompatibleProvider({
-    name: 'openrouter',
-    baseUrl: config.OPENROUTER_BASE_URL,
-    apiKey: config.OPENROUTER_API_KEY,
-    model: config.OPENROUTER_MODEL,
-    costPer1kIn: 0.03,
-    costPer1kOut: 0.09,
-  }),
-  new OpenAICompatibleProvider({
-    name: 'openai',
-    baseUrl: config.OPENAI_BASE_URL,
-    apiKey: config.OPENAI_API_KEY,
-    model: config.OPENAI_MODEL,
-    costPer1kIn: 0.15,
-    costPer1kOut: 0.60,
+    name: 'primary',
+    baseUrl: config.AI_BASE_URL,
+    apiKey: config.AI_API_KEY,
+    model: config.AI_MODEL,
+    costPer1kIn: 0,
+    costPer1kOut: 0,
   }),
   new LocalProvider(),
 ];
@@ -416,7 +391,7 @@ export async function chatWithFallback(params, { retries = config.AI_MAX_RETRIES
       }
     }
   }
-  const e = new Error(`Все AI-провайдеры недоступны: ${lastError?.message ?? 'unknown'}`);
+  const e = new Error(`Сервис Светланы временно недоступен: ${lastError?.message ?? 'unknown'}`);
   e.lastError = lastError;
   throw e;
 }
