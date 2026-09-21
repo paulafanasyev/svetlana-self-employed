@@ -36,8 +36,14 @@ class MainActivity : ComponentActivity() {
                     },
                     onRegister = { name, email, password ->
                         val res = AuthApi.register(name, email, password)
-                        ApiClient.setToken(res.optString("access_token"))
-                        tokenStore.save(res.optString("access_token"), res.optString("refresh_token"))
+                        val access = res.optString("access_token").ifBlank {
+                            throw IllegalStateException("Сервер не вернул access token")
+                        }
+                        val refresh = res.optString("refresh_token").ifBlank {
+                            throw IllegalStateException("Сервер не вернул refresh token")
+                        }
+                        ApiClient.setTokens(access, refresh)
+                        tokenStore.save(access, refresh)
                     },
                     onLogout = {
                         runCatching { AuthApi.logout() }
