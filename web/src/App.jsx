@@ -159,6 +159,10 @@ export default function App() {
       <Route path="/finance" element={<PublicRoute page="finance" />} />
       <Route path="/calendar" element={<PublicRoute page="calendar" />} />
       <Route path="/grants" element={<PublicRoute page="grants" />} />
+      <Route path="/dashboard" element={<PublicRoute page="dashboard" />} />
+      <Route path="/profile" element={<PublicRoute page="profile" />} />
+      <Route path="/svetlana" element={<PublicRoute page="svetlana" />} />
+      <Route path="/achievements" element={<PublicRoute page="achievements" />} />
 
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
       <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
