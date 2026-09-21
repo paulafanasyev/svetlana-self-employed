@@ -322,7 +322,7 @@ function ProjectsSelfEmployedPage() {
               <h2>Предложите свой проект</h2>
               <p>Опишите идею, текущий результат и какую поддержку вы ищете: внедрение, продвижение, партнёры, инвестиции, грант или субсидию.</p>
             </div>
-            <a className="site-btn site-btn-primary site-btn-lg" href="mailto:it-laboratory@bk.ru?subject=Проект самозанятого">Отправить проект →</a>
+            <a className="site-btn site-btn-primary site-btn-lg" href="mailto:mir.samozanyatyh@yandex.ru?subject=Проект самозанятого">Отправить проект →</a>
           </div>
         </div>
       </section>
