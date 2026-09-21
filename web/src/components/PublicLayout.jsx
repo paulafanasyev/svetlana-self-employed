@@ -6,7 +6,7 @@ import CookieConsent, { CookieSettingsButton } from './CookieConsent.jsx';
 
 const NAV = [
   ['/', 'Главная', true],
-  ['/about', 'О Светлане'],
+  ['/about', 'О проекте'],
   ['/organization', 'АНО ЦПС'],
   ['/organization', 'АНО ЦПС'],
   ['/calculator', 'Калькулятор'],
