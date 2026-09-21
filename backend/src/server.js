@@ -25,6 +25,7 @@ import { migrate } from './db/migrate.js';
 import authPlugin from './auth/plugin.js';
 
 import healthRoutes from './routes/health.js';
+import publicRoutes from './routes/public.js';
 import authRoutes from './routes/auth.js';
 import profileRoutes from './routes/profile.js';
 import clientRoutes from './routes/clients.js';
@@ -113,6 +114,7 @@ export async function buildServer() {
     async (api) => {
       api.register(authPlugin);
       api.register(healthRoutes);
+      api.register(publicRoutes, { prefix: '/public' });
       api.register(authRoutes);
       api.register(profileRoutes, { prefix: '/profile' });
       api.register(clientRoutes, { prefix: '/clients' });
