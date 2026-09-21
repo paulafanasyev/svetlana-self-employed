@@ -138,7 +138,7 @@ function InfoPage({ kind }) {
 function Blog() {
   const posts = [
     ['НПД без лишней рутины', 'Как устроены ставки НПД и где проверять итоговый расчёт.', '/calculator'],
-    ['Светлана внутри рабочего пространства', 'Зачем AI-оператору нужен реестр инструментов и подтверждение чувствительных действий.', '/app/svetlana'],
+    ['Светлана внутри рабочего пространства', 'Зачем AI-оператору нужен реестр инструментов и подтверждение чувствительных действий.', '/svetlana'],
     ['Один аккаунт для web и Android', 'Как единый backend связывает сайт и мобильное приложение.', '/downloads'],
   ];
   return <><PageIntro eyebrow="Блог" title="Практические материалы" text="Публичные статьи проекта о работе самозанятого и возможностях платформы." /><section className="site-section"><div className="site-container site-feature-grid">{posts.map(([title, text, to]) => <article className="site-card" key={title}><span className="site-eyebrow">Материал</span><h2>{title}</h2><p>{text}</p><Link to={to} className="site-inline-link">Открыть →</Link></article>)}</div></section></>;
