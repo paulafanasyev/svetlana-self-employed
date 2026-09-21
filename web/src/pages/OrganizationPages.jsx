@@ -158,7 +158,7 @@ export function CooperationPage() {
             <span className="site-eyebrow">Что важно указать</span>
             <p>Название организации или специалиста, направление деятельности, города и регионы присутствия, описание предложения для самозанятых, контактное лицо и способ связи.</p>
             <p>Для государственных и иных публичных программ указываются официальный источник, период действия и условия доступа. Мы не публикуем непроверенные программы как действующие.</p>
-            <a className="site-btn site-btn-primary site-btn-lg" href="mailto:it-laboratory@bk.ru?subject=Сотрудничество с АНО ЦПС Мир Самозанятых">Написать в АНО ЦПС →</a>
+            <a className="site-btn site-btn-primary site-btn-lg" href="mailto:mir.samozanyatyh@yandex.ru?subject=Сотрудничество с АНО ЦПС Мир Самозанятых">Написать в АНО ЦПС →</a>
           </div>
         </div>
       </section>
