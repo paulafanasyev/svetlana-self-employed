@@ -8,7 +8,6 @@ const NAV = [
   ['/', 'Главная', true],
   ['/about', 'О проекте'],
   ['/organization', 'АНО ЦПС'],
-  ['/organization', 'АНО ЦПС'],
   ['/calculator', 'Калькулятор'],
   ['/marketplace', 'Маркетплейс'],
   ['/jobs', 'Работа'],
