@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { publicAi } from '../api.js';
+import { api } from '../api.js';
 import { SvetlanaAvatar } from '../components/SvetlanaAvatar.jsx';
 
 const SUGGESTIONS = ['Что умеет Светлана?', 'Что такое «Мир Самозанятых»?', 'Как начать работать как самозанятый?', 'Где проверить правила по НПД?'];
@@ -19,7 +19,7 @@ export default function PublicSvetlanaChat() {
     setMessages((items) => [...items, { role: 'user', content: message }]);
     setBusy(true);
     try {
-      const result = await publicAi.chat({ message, history });
+      const result = await api.post('/public/chat', { message, history });
       setMessages((items) => [...items, { role: 'assistant', content: result?.content || 'Не удалось получить ответ. Попробуйте ещё раз.' }]);
     } catch (err) {
       setError(err?.message || 'Светлана сейчас недоступна.');
