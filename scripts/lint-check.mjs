@@ -21,10 +21,19 @@ for (const file of [...walk('backend/src'), ...walk('backend/scripts')]) {
 
 const workflow = readFileSync('.github/workflows/ci.yml', 'utf8');
 const packageJson = readFileSync('package.json', 'utf8');
+const render = readFileSync('render.yaml', 'utf8');
+const androidManifest = readFileSync('android/app/src/main/AndroidManifest.xml', 'utf8');
+const debugManifest = readFileSync('android/app/src/debug/AndroidManifest.xml', 'utf8');
 const forbidden = [
   ['lint placeholder', packageJson.includes('lint placeholder')],
   ['non-blocking npm audit', workflow.includes('npm audit --omit=dev --audit-level=high || true')],
   ['public storage static mount', readFileSync('backend/src/server.js', 'utf8').includes("prefix: '/storage/'")],
+  ['release cleartext traffic enabled', androidManifest.includes('android:usesCleartextTraffic="true"')],
+  ['debug manifest missing explicit cleartext opt-in', !debugManifest.includes('android:usesCleartextTraffic="true"')],
+  ['Render production Blueprint missing health check', !render.includes('healthCheckPath: /api/v1/health')],
+  ['Render production Blueprint enables demo seed data', render.includes('SEED_DEMO_DATA\n        value: true')],
+  ['Render Blueprint missing persistent data mount', !render.includes('mountPath: /var/data')],
+  ['Render Blueprint missing generated JWT secret', !render.includes('key: JWT_SECRET\n        generateValue: true')],
 ];
 for (const [label, bad] of forbidden) if (bad) failures.push(label);
 

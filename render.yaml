@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: mir-samozanyatykh-api-frankfurt
+    runtime: node
+    plan: 1c-2g
+    region: frankfurt
+    rootDir: .
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: checksPass
+    numInstances: 1
+    disk:
+      name: mir-samozanyatykh-data
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: DB_PATH
+        value: /var/data/app.sqlite
+      - key: STORAGE_DIR
+        value: /var/data/storage
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_TTL
+        value: 15m
+      - key: JWT_REFRESH_TTL
+        value: 30d
+      - key: WEB_ORIGIN
+        value: https://мир-самозанятых.рф
+      - key: GITHUB_PAGES_ORIGIN
+        value: https://paulafanasyev.github.io
+      - key: CORS_ORIGINS
+        value: https://мир-самозанятых.рф,https://paulafanasyev.github.io
+      - key: PAYMENT_PROVIDER
+        value: yookassa
+      - key: YOOKASSA_SHOP_ID
+        sync: false
+      - key: YOOKASSA_SECRET
+        sync: false
+      - key: SEED_DEMO_DATA
+        value: "false"
+      - key: AI_PROVIDER_ORDER
+        value: atria,openrouter,openai,local
+      - key: EMBEDDING_PROVIDER
+        value: none
+      - key: RATE_LIMIT_MAX
+        value: "120"
+      - key: AUTH_RATE_LIMIT_MAX
+        value: "20"

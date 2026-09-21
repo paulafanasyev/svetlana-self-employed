@@ -179,7 +179,9 @@ Kotlin + Jetpack Compose, один модуль. Тот же backend, та же 
 
 ```bash
 cd android && gradle assembleDebug     # debug APK
-cd android && gradle assembleRelease    # release APK (minified)
+cd android && gradle assembleRelease    # release APK (minified, production API by default)
+# Local emulator debug against http://10.0.2.2:4000:
+cd android && gradle assembleDebug -PmirApiBaseUrl=http://10.0.2.2:4000/api/v1
 ```
 
 ---

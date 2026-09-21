@@ -201,13 +201,22 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Build Android release APK
+      - name: Build Android release APK + AAB
         working-directory: android
-        run: gradle assembleRelease --no-daemon --stacktrace -PmirApiBaseUrl=https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1
+        run: gradle assembleRelease bundleRelease --no-daemon --stacktrace -PmirApiBaseUrl=https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1
+      - name: Verify release manifest is HTTPS-only
+        run: |
+          if grep -R -n 'usesCleartextTraffic="true"' android/app/src/main android/app/src/release 2>/dev/null; then
+            echo "::error::Release sources must not allow cleartext traffic"
+            exit 1
+          fi
+          echo "Release manifest is HTTPS-only"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: android-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          name: android-release
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: ignore
           retention-days: 14

@@ -1,0 +1,49 @@
+name: Android Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Build release APK and AAB
+        working-directory: android
+        run: |
+          gradle assembleRelease bundleRelease --no-daemon --stacktrace             -PmirApiBaseUrl=https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1
+
+      - name: Enforce HTTPS-only Android release
+        run: |
+          if grep -R -n 'usesCleartextTraffic="true"' android/app/src/main android/app/src/release 2>/dev/null; then
+            echo "::error::Release sources allow cleartext traffic"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
