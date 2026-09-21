@@ -162,8 +162,6 @@ export default function App() {
       <Route path="/contacts" element={<PublicRoute page="contacts" />} />
       <Route path="/faq" element={<PublicRoute page="faq" />} />
       <Route path="/support" element={<PublicRoute page="support" />} />
-      <Route path="/privacy" element={<PublicRoute page="privacy" />} />
-      <Route path="/terms" element={<PublicRoute page="terms" />} />
       <Route path="/contracts" element={<PublicRoute page="contracts" />} />
       <Route path="/crm" element={<PublicRoute page="crm" />} />
       <Route path="/finance" element={<PublicRoute page="finance" />} />
