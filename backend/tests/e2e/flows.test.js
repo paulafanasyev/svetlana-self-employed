@@ -40,7 +40,12 @@ const auth = (token) => (token ? { authorization: `Bearer ${token}` } : {});
 
 async function registerUser(email, name = 'E2E User') {
   const res = await post('/api/v1/auth/register', {
-    email, password: 'Test123456', display_name: name, consent_ai_processing: true,
+    email,
+    password: 'Test123456',
+    display_name: name,
+    consent_personal_data: true,
+    accept_terms: true,
+    consent_ai_processing: true,
   });
   assert.equal(res.statusCode, 201, `register ${email}: ${res.json()?.message ?? res.statusCode}`);
   return { token: res.json().access_token, id: res.json().user.id };
