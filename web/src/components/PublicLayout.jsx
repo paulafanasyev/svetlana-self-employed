@@ -11,6 +11,7 @@ const NAV = [
   ['/education', 'Обучение'],
   ['/projects', 'Проекты'],
   ['/downloads', 'Приложение'],
+  ['/svetlana/capabilities', 'Возможности Светланы'],
   ['/contacts', 'Контакты'],
 ];
 

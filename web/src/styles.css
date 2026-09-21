@@ -524,3 +524,38 @@ body.dark .site-footer { background:#020617; }
 .site-chat-compose button { width:40px; border:0; border-radius:12px; background:var(--site-orange); color:#fff; font-weight:900; cursor:pointer; }
 @media (max-width:980px){ .site-links { display:none; position:absolute; top:66px; left:8px; right:8px; margin:0; flex-direction:column; align-items:stretch; padding:10px; background:var(--site-card); border:1px solid var(--site-line); border-radius:16px; box-shadow:0 20px 50px rgba(15,23,42,.14); } .site-links.is-open { display:flex; } .site-links a { width:100%; } .site-mobile-button { display:block; } .site-theme-toggle { margin-left:0; } .site-hero-grid { grid-template-columns:minmax(0,1fr) 46%; gap:18px; } .site-hero-stage { min-height:520px; } .site-feature-grid { grid-template-columns:repeat(2,1fr); } .site-footer-grid { grid-template-columns:1fr 1fr; } }
 @media (max-width:700px){ .site-container { width:min(100% - 22px,1180px); } .site-nav-inner { min-height:64px; gap:8px; } .site-theme-toggle span { display:none; } .site-brand-mark { width:38px; height:38px; flex-basis:38px; } .site-brand-mark img { width:30px; height:30px; } .site-brand { font-size:13px; } .site-hero { padding:18px 0 30px; } .site-hero-grid { grid-template-columns:1fr; min-height:0; } .site-hero-stage { min-height:420px; border-radius:24px; order:-1; } .site-hero-copy { padding:10px 0 0; } .site-hero h1 { font-size:clamp(34px,10vw,49px); } .site-hero-copy > p,.site-page-intro p { font-size:14px; line-height:1.6; } .site-actions .site-btn { width:100%; } .site-feature-grid,.site-two-col,.site-dashboard-preview { grid-template-columns:1fr; } .site-feature-card { min-height:0; } .site-two-col > div:first-child h2 { font-size:30px; } .site-section { padding:48px 0; } .site-section-head h2 { font-size:29px; } .site-page-intro { padding:38px 0 26px; } .site-page-intro h1 { font-size:clamp(32px,9vw,46px); } .site-result-grid { grid-template-columns:1fr 1fr; } .site-dashboard-body { grid-template-columns:1fr; } .site-cta-box { flex-direction:column; align-items:flex-start; } .site-cta-box .site-btn { width:100%; } .site-footer-grid { grid-template-columns:1fr; } .site-footer-bottom { flex-direction:column; } .site-chat-fab { width:60px; height:60px; right:13px; bottom:13px; } .site-chat { right:10px; bottom:10px; width:calc(100vw - 20px); } }
+
+/* Svetlana 2.0 capability map */
+.sv-cap-page { background: var(--site-bg); color: var(--site-ink); }
+.sv-cap-hero { padding: 56px 0 64px; background: radial-gradient(circle at 82% 18%, rgba(249,115,22,.16), transparent 24%), radial-gradient(circle at 18% 70%, rgba(59,130,246,.13), transparent 26%); border-bottom:1px solid var(--site-line); }
+.sv-cap-hero-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr); gap:32px; align-items:center; }
+.sv-cap-hero h1 { max-width:14ch; margin:16px 0; font-size:clamp(40px,5vw,68px); line-height:1.03; letter-spacing:-.05em; }
+.sv-cap-hero p { max-width:780px; color:var(--site-muted); font-size:17px; line-height:1.75; }
+.sv-cap-avatar { min-height:330px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:30px; background:linear-gradient(145deg,rgba(15,23,42,.96),rgba(51,65,85,.96)); box-shadow:0 30px 80px rgba(15,23,42,.16); color:#fff; text-align:center; padding:24px; }
+.sv-cap-avatar strong { margin-top:10px; font-size:20px; }
+.sv-cap-avatar span { margin-top:6px; color:#cbd5e1; font-size:12px; line-height:1.5; max-width:280px; }
+.sv-cap-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.sv-cap-card { padding:22px; min-height:205px; background:var(--site-card); border:1px solid var(--site-line); border-radius:22px; box-shadow:0 16px 48px rgba(40,70,110,.06); }
+.sv-cap-num { width:40px; height:40px; display:grid; place-items:center; border-radius:12px; background:rgba(249,115,22,.1); color:#c2410c; font-weight:900; font-size:12px; margin-bottom:14px; }
+.sv-cap-card h3 { margin:0 0 10px; font-size:18px; }
+.sv-cap-card p { margin:0; color:var(--site-muted); font-size:13px; line-height:1.65; }
+.sv-pipeline { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.sv-pipeline-step { position:relative; min-height:115px; display:grid; grid-template-columns:44px 1fr; gap:12px; align-items:start; padding:18px; border:1px solid var(--site-line); border-radius:18px; background:var(--site-card); }
+.sv-pipeline-step > span { width:38px; height:38px; display:grid; place-items:center; border-radius:50%; background:#0f172a; color:#fff; font-size:11px; font-weight:900; }
+.sv-pipeline-step strong { display:block; font-size:12px; letter-spacing:.08em; }
+.sv-pipeline-step p { margin:6px 0 0; color:var(--site-muted); font-size:12px; line-height:1.45; }
+.sv-pipeline-step > b { position:absolute; right:-10px; top:45px; z-index:2; color:#94a3b8; }
+.sv-cap-columns { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.sv-cap-list,.sv-data-layers,.sv-statuses { display:grid; gap:10px; margin-top:18px; }
+.sv-cap-list > div { display:grid; grid-template-columns:100px 1fr; gap:8px 12px; padding:12px; border:1px solid var(--site-line); border-radius:14px; }
+.sv-cap-list strong { color:var(--site-ink); }
+.sv-cap-list span { color:var(--site-muted); font-size:12px; }
+.sv-cap-list em { grid-column:2; font-style:normal; color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:.06em; }
+.sv-data-layers > div,.sv-statuses > div { padding:13px 15px; border-radius:14px; background:rgba(248,250,252,.65); border:1px solid var(--site-line); }
+body.dark .sv-data-layers > div,body.dark .sv-statuses > div { background:rgba(2,6,23,.32); }
+.sv-data-layers strong,.sv-statuses strong { display:block; margin-bottom:4px; }
+.sv-data-layers span,.sv-statuses span { display:block; color:var(--site-muted); font-size:12px; line-height:1.5; }
+.sv-governance { align-items:flex-start; }
+.sv-statuses { min-width:320px; width:100%; }
+@media (max-width:980px) { .sv-cap-grid { grid-template-columns:repeat(2,1fr); } .sv-pipeline { grid-template-columns:repeat(2,1fr); } .sv-pipeline-step > b { display:none; } .sv-cap-hero-grid { grid-template-columns:1fr 320px; } }
+@media (max-width:700px) { .sv-cap-hero-grid,.sv-cap-columns { grid-template-columns:1fr; } .sv-cap-hero { padding:36px 0 42px; } .sv-cap-avatar { min-height:300px; } .sv-cap-grid,.sv-pipeline { grid-template-columns:1fr; } .sv-cap-card { min-height:0; } .sv-statuses { min-width:0; } }

@@ -15,4 +15,5 @@
   <url><loc>https://мир-самозанятых.рф/terms</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
   <url><loc>https://мир-самозанятых.рф/login</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://мир-самозанятых.рф/register</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://мир-самозанятых.рф/svetlana/capabilities</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
 </urlset>
