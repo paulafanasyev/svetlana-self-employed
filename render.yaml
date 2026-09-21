@@ -1,9 +1,8 @@
 services:
   - type: web
-    name: mir-samozanyatykh-api-frankfurt
+    name: mir-samozanyatykh-core
     runtime: node
     plan: 1c-2g
-    region: frankfurt
     rootDir: .
     buildCommand: npm ci && npm run build
     startCommand: npm start
@@ -44,12 +43,12 @@ services:
       - key: SEED_DEMO_DATA
         value: "false"
       - key: AI_PROVIDER_ORDER
-        value: atria,openrouter,openai,local
-      - key: ATRIA_BASE_URL
-        value: https://api.atria-asi.ai/v1
-      - key: ATRIA_MODEL
-        value: Atria-Dawn-Preview
-      - key: ATRIA_API_KEY
+        value: primary,local
+      - key: AI_BASE_URL
+        sync: false
+      - key: AI_MODEL
+        value: svetlana-core
+      - key: AI_API_KEY
         sync: false
       - key: EMBEDDING_PROVIDER
         value: none

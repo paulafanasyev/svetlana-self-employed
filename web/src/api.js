@@ -7,9 +7,8 @@
  */
 
 // import.meta.env is undefined outside vite (e.g. unit tests); fall back safely.
-const DEFAULT_PAGES_API = 'https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1';
-const isPagesHost = typeof window !== 'undefined' && /(^|\.)github\.io$/.test(window.location.hostname);
-const configuredApi = import.meta.env?.VITE_API_URL || (isPagesHost ? (import.meta.env?.VITE_PAGES_API_URL || DEFAULT_PAGES_API) : '/api/v1');
+const DEFAULT_PAGES_API = '/api/v1';
+const configuredApi = import.meta.env?.VITE_API_URL || DEFAULT_PAGES_API;
 export const API_BASE = configuredApi.replace(/\/$/, '');
 const TOKEN_KEY = 'mir_access_token';
 const REFRESH_KEY = 'mir_refresh_token';

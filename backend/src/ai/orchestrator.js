@@ -226,9 +226,6 @@ export async function converse({ userId, message, conversationId = null, approve
       message: a.message,
       error: a.error,
     })),
-    provider: providerMeta.provider,
-    model: providerMeta.model,
-    cost_rub: providerMeta.costRub,
   };
 }
 

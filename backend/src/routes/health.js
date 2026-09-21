@@ -5,7 +5,6 @@
 import { db } from '../db/client.js';
 import { migrationStatus } from '../db/migrate.js';
 import { config } from '../config.js';
-import { availableProviders } from '../ai/providers.js';
 
 export default async function healthRoutes(fastify) {
   fastify.get('/health', async () => {
@@ -21,7 +20,6 @@ export default async function healthRoutes(fastify) {
     } catch (err) {
       checks.migrations = `fail: ${err.message}`;
     }
-    const providers = availableProviders().map((p) => p.name);
     return {
       status: 'ok',
       service: 'mir-samozanyatyh-backend',
@@ -29,7 +27,6 @@ export default async function healthRoutes(fastify) {
       time: new Date().toISOString(),
       checks,
       migrations,
-      ai_providers: providers,
       payment_provider: config.isProd && config.PAYMENT_PROVIDER === 'test'
         ? 'misconfigured_in_production'
         : config.PAYMENT_PROVIDER,
