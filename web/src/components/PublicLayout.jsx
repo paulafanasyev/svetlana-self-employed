@@ -158,7 +158,7 @@ export default function PublicLayout({ children }) {
           </div>
           <div><h4>Навигация</h4><Link to="/about">О проекте</Link><Link to="/jobs">Работа</Link><Link to="/projects">Проекты Самозанятых</Link><Link to="/education">Обучение</Link><Link to="/blog">Блог</Link></div>
           <div><h4>Сервисы</h4><Link to="/calculator">Калькулятор</Link><Link to="/marketplace">Маркетплейс</Link><Link to="/jobs">Работа</Link><Link to="/grants">Гранты</Link><Link to="/svetlana">Светлана</Link></div>
-          <div><h4>Поддержка</h4><Link to="/organization">АНО ЦПС</Link><Link to="/cooperation">Сотрудничество</Link><Link to="/contacts">Контакты</Link><Link to="/support">Поддержка</Link><Link to="/faq">FAQ</Link><Link to="/privacy">Конфиденциальность</Link><Link to="/terms">Соглашение</Link><Link to="/cookies">Cookie</Link><CookieSettingsButton /></div>
+          <div><h4>АНО ЦПС «Мир Самозанятых»</h4><Link to="/organization">О центре</Link><Link to="/cooperation">Сотрудничество</Link><Link to="/contacts">Контакты</Link><Link to="/support">Поддержка</Link><Link to="/faq">FAQ</Link><Link to="/privacy">Конфиденциальность</Link><Link to="/terms">Соглашение</Link><Link to="/cookies">Cookie</Link><a href="tel:+79199991336">+7 (919) 999-13-36</a><a href="mailto:mir.samozanyatyh@yandex.ru">mir.samozanyatyh@yandex.ru</a><CookieSettingsButton /></div>
         </div>
         <div className="site-container site-footer-bottom">
           <span>© {new Date().getFullYear()} Мир Самозанятых</span>
