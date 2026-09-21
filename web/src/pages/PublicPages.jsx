@@ -194,6 +194,40 @@ function AboutProjectPage() {
   );
 }
 
+function MarketplaceLandingPage() {
+  return (
+    <>
+      <PageIntro
+        eyebrow="Маркетплейс"
+        title="Работа, проекты, услуги и специалисты"
+        text="Здесь самозанятый может находить заказы и клиентов, предлагать свои услуги, искать партнёров и переходить к вакансиям. Для вакансий можно использовать географию и официальный источник «Работа России»."
+        actions={[
+          ['Найти работу в своём городе', '/jobs', 'primary'],
+          ['Посмотреть проекты Самозанятых', '/projects', 'soft'],
+        ]}
+      />
+      <section className="site-section">
+        <div className="site-container site-feature-grid">
+          {[
+            ['💼', 'Вакансии', 'Работа в выбранном городе, удалённые предложения и дополнительная выдача официальных открытых данных «Работы России».'],
+            ['🛒', 'Проекты и заказы', 'Заказчики публикуют задачи, специалисты откликаются, а профиль помогает оценивать соответствие навыков.'],
+            ['🧰', 'Услуги', 'Самозанятые могут размещать свои услуги и находить клиентов внутри платформы.'],
+            ['🤝', 'Взаимодействие', 'Партнёрство, отклики и рабочие контакты строятся вокруг конкретной задачи, а не отдельного чата без контекста.'],
+            ['📍', 'География', 'Город и регион помогают искать локальную работу, обучение, поддержку и гранты.'],
+            ['🎓', 'Развитие', 'Обучение и профессиональные центры можно искать с учётом города пользователя.'],
+          ].map(([icon, title, text]) => (
+            <article key={title} className="site-card site-feature-card">
+              <div className="site-feature-icon">{icon}</div>
+              <h2>{title}</h2>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
 function ProjectsSelfEmployedPage() {
   const projects = [
     {
@@ -304,6 +338,7 @@ export default function PublicPages({ page = 'home' }) {
   if (page === 'calculator') return <Calculator />;
   if (page === 'about') return <AboutProjectPage />;
   if (page === 'projects') return <ProjectsSelfEmployedPage />;
+  if (page === 'marketplace') return <MarketplaceLandingPage />;
   if (page === 'blog') return <Blog />;
   if (['education','marketplace','downloads','contacts','faq','support','privacy','terms','dashboard','profile','svetlana','achievements'].includes(page)) return <InfoPage kind={page} />;
   if (page === 'contracts') return <ServicePage title="Договоры и документы" text="Рабочий раздел для создания и согласования документов на основе данных сделки." items={[['Шаблоны', 'Создание документа из структурированных данных рабочего пространства.', '📄'], ['Предпросмотр', 'Проверка перед утверждением и отправкой.', '🔎'], ['Статусы', 'Понимание, что реально создано и что требует действия пользователя.', '✓']]} />;
