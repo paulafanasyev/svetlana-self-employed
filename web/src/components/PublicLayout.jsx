@@ -154,7 +154,7 @@ export default function PublicLayout({ children }) {
         <div className="site-container site-footer-grid">
           <div>
             <Link className="site-footer-brand" to="/">Мир Самозанятых</Link>
-            <p>Платформа для самозанятых, ИП и компаний: Светлана, CRM, документы, календарь, маркетплейс и обучение.</p>
+            <p>Экосистема поддержки самозанятых: Светлана, рабочие инструменты, работа, обучение, развитие проектов и партнёрские возможности.</p>
           </div>
           <div><h4>Навигация</h4><Link to="/about">О проекте</Link><Link to="/jobs">Работа</Link><Link to="/projects">Проекты Самозанятых</Link><Link to="/education">Обучение</Link><Link to="/blog">Блог</Link></div>
           <div><h4>Сервисы</h4><Link to="/calculator">Калькулятор</Link><Link to="/marketplace">Маркетплейс</Link><Link to="/jobs">Работа</Link><Link to="/grants">Гранты</Link><Link to="/svetlana">Светлана</Link></div>
