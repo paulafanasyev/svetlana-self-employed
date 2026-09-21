@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { SvetlanaAvatar } from '../components/SvetlanaAvatar.jsx';
 
 const FEATURES = [
   ['✨', 'Светлана', 'AI-оператор для задач, документов, поиска и навигации по рабочему пространству.'],
@@ -42,7 +43,7 @@ function Home() {
           </div>
           <div className="site-hero-stage">
             <div className="site-hero-glow" />
-            <div className="site-hero-avatar"><div className="site-avatar-ring"><span /></div><div className="site-avatar-label"><strong>Светлана</strong><span>AI-оператор «Мира Самозанятых»</span></div></div>
+            <div className="site-hero-avatar"><div className="site-avatar-ring"><SvetlanaAvatar emotion="HAPPY" size={270} /></div><div className="site-avatar-label"><strong>Светлана</strong><span>AI-оператор «Мира Самозанятых»</span></div></div>
           </div>
         </div>
       </section>
