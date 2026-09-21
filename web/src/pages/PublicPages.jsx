@@ -42,15 +42,34 @@ function Home() {
             <div className="site-trust-row"><span>✓ Web + Android</span><span>✓ Единый аккаунт</span><span>✓ Проверяемые действия</span></div>
           </div>
           <div className="site-hero-stage site-hero-welcome">
-            <div className="site-hero-media-fallback is-static" aria-label="Светлана">
-              <SvetlanaAvatar emotion="HAPPY" size={360} />
-              <span>Светлана · AI-оператор «Мира Самозанятых»</span>
+            <div className="site-hero-media-real" aria-label="Светлана — видео-приветствие">
+              <video className="site-hero-video" autoPlay muted loop playsInline preload="metadata" poster={(import.meta.env.BASE_URL || '/') + 'svetlana-photo.jpg'} aria-label="Светлана — приветствие">
+                <source src={(import.meta.env.BASE_URL || '/') + 'svetlana-welcome.mp4'} type="video/mp4" />
+              </video>
+              <div className="site-hero-video-caption"><span className="site-live-dot">● Светлана</span><strong>AI-оператор «Мира Самозанятых»</strong></div>
             </div>
             <div className="site-hero-welcome-card">
               <span className="site-live-dot">● Сейчас здесь</span>
               <strong>Здравствуйте.<br />Рада видеть вас в «Мире Самозанятых».</strong>
-              <span>Светлана — ваш AI-оператор для рабочих задач.</span>
+              <span>Светлана помогает с рабочими задачами и навигацией по возможностям поддержки.</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="site-section site-section-project-story">
+        <div className="site-container site-two-col site-project-story-grid">
+          <div>
+            <span className="site-eyebrow">Что это за проект</span>
+            <h2>«Мир Самозанятых» — проект АНО ЦПС для поддержки человека, который работает на себя</h2>
+            <p>Мы создаём единую экосистему, в которой самозанятый может не только решить отдельную задачу, но и пройти весь рабочий путь: найти заказ или вакансию, оформить отношения с клиентом, подготовить документы, спланировать работу, получить знания, узнать о мерах поддержки и развивать собственный проект.</p>
+            <p>Для этого АНО ЦПС «Мир Самозанятых» развивает сайт и приложение, AI-оператора Светлану, рабочее пространство, региональный поиск возможностей и сеть партнёров. Цель проекта — сделать поддержку самозанятых доступной, понятной и связанной с реальными потребностями людей и организаций.</p>
+            <div className="site-actions"><Link className="site-btn site-btn-primary" to="/organization">О работе АНО ЦПС →</Link><Link className="site-btn site-btn-soft" to="/cooperation">Стать партнёром</Link></div>
+          </div>
+          <div className="site-project-story-list">
+            <article className="site-card"><span className="site-eyebrow">Работа и доход</span><h3>Работа, заказы, клиенты и профессиональные связи</h3><p>Поиск возможностей, проекты, услуги, вакансии и взаимодействие с заказчиками.</p></article>
+            <article className="site-card"><span className="site-eyebrow">Знания и развитие</span><h3>Обучение, подготовка и переподготовка</h3><p>Курсы, эксперты, практические материалы и предложения от учебных центров.</p></article>
+            <article className="site-card"><span className="site-eyebrow">Поддержка</span><h3>Региональные программы, гранты и партнёрская помощь</h3><p>Навигация по доступным возможностям без выдачи непроверенных программ за действующие.</p></article>
           </div>
         </div>
       </section>
