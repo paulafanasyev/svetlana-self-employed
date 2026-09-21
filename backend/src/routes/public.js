@@ -7,7 +7,7 @@
 import { paginationSchema } from '../lib/http.js';
 import { db } from '../db/client.js';
 
-const TRUD_API = 'https://opendata.trudvsem.ru/api/v1/vacancies';
+const TRUD_API = 'http://opendata.trudvsem.ru/api/v1/vacancies';
 
 function asText(value) {
   return value == null ? '' : String(value);
