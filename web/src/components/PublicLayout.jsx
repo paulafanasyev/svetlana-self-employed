@@ -6,7 +6,8 @@ import CookieConsent, { CookieSettingsButton } from './CookieConsent.jsx';
 
 const NAV = [
   ['/', 'Главная', true],
-  ['/about', 'О проекте'],
+  ['/about', 'О Светлане'],
+  ['/organization', 'АНО ЦПС'],
   ['/organization', 'АНО ЦПС'],
   ['/calculator', 'Калькулятор'],
   ['/marketplace', 'Маркетплейс'],
@@ -133,7 +134,6 @@ export default function PublicLayout({ children }) {
             {NAV.map(([to, label, end]) => (
               <NavLink key={to} to={to} end={Boolean(end)} className={({ isActive }) => isActive ? 'active' : ''}>{label}</NavLink>
             ))}
-            <NavLink to="/jobs">Работа</NavLink>
             <NavLink to="/app">Кабинет</NavLink>
             {user ? (
               <button className="site-btn site-btn-soft" type="button" onClick={() => navigate('/app')}>Мой кабинет</button>
