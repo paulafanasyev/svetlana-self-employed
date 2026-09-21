@@ -59,8 +59,8 @@ const schema = z.object({
 
   // AI providers (§30). Any subset may be configured; absent = provider disabled.
   ATRIA_API_KEY: z.string().optional(),
-  ATRIA_BASE_URL: z.string().default('https://api.atria.tech/v1'),
-  ATRIA_MODEL: z.string().default('atria-alpha'),
+  ATRIA_BASE_URL: z.string().url().default('https://api.atria-asi.ai/v1'),
+  ATRIA_MODEL: z.string().default('Atria-Dawn-Preview'),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_BASE_URL: z.string().default('https://api.openai.com/v1'),
   OPENAI_MODEL: z.string().default('gpt-4o-mini'),
