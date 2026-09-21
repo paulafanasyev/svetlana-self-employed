@@ -115,7 +115,7 @@ export default function PublicLayout({ children }) {
       <header className="site-nav">
         <div className="site-container site-nav-inner">
           <Link className="site-brand" to="/" aria-label="Мир Самозанятых">
-            <span className="site-brand-mark"><img src={new URL('../public/logo-mir-samozanyatykh.svg', import.meta.url).href} alt="" /></span>
+            <span className="site-brand-mark"><img src={(import.meta.env.BASE_URL || '/') + 'logo-mir-samozanyatykh.svg'} alt="" /></span>
             <span><strong>Мир</strong> Самозанятых<small>рабочее пространство</small></span>
           </Link>
 
