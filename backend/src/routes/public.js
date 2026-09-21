@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { paginationSchema } from '../lib/http.js';
 import { db } from '../db/client.js';
 import { config } from '../config.js';
+import { chatWithFallback } from '../ai/providers.js';
 
 const TRUD_API = 'http://opendata.trudvsem.ru/api/v1/vacancies';
 
