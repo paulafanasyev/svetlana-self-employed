@@ -53,7 +53,7 @@ export default async function aiRoutes(fastify) {
     const conv = db().prepare('SELECT * FROM ai_conversations WHERE id = ? AND user_id = ?').get(request.params.id, request.user.id);
     if (!conv) return sendError(reply, 404, 'not_found', 'Беседа не найдена');
     const messages = db()
-      .prepare('SELECT id, role, content, emotion, provider, model, created_at FROM ai_messages WHERE conversation_id = ? ORDER BY created_at')
+      .prepare('SELECT id, role, content, emotion, created_at FROM ai_messages WHERE conversation_id = ? ORDER BY created_at')
       .all(conv.id);
     return { conversation: conv, messages };
   });
