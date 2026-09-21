@@ -21,7 +21,7 @@ android {
 
         // Backend base URL — overridable via gradle property for local testing.
         // Never store secrets here; the app holds no API keys (§7).
-        buildConfigField("String", "API_BASE_URL", "\"${project.findProperty("mirApiBaseUrl") ?: "https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1"}\"")
+        buildConfigField("String", "API_BASE_URL", "\"${project.findProperty("mirApiBaseUrl") ?: "https://мир-самозанятых.рф/api/v1"}\"")
     }
 
     buildTypes {
