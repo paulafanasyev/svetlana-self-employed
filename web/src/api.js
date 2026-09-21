@@ -60,6 +60,14 @@ async function doFetch(path, options = {}) {
       const refreshed = await tryRefresh();
       if (refreshed) return doFetch(path, { ...options, __retried: true });
     }
+    if (res.status === 502 || res.status === 503 || res.status === 504) {
+      throw new ApiError(
+        body?.error || 'backend_unavailable',
+        'Сервер «Мира Самозанятых» сейчас недоступен или запускается. Повторите попытку через несколько секунд.',
+        res.status,
+        body
+      );
+    }
     throw new ApiError(body?.error || 'http_error', body?.message || `HTTP ${res.status}`, res.status, body);
   }
   backendAvailable = true;
