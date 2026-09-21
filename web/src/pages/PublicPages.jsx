@@ -33,17 +33,24 @@ function Home() {
         <div className="site-container site-hero-grid">
           <div className="site-hero-copy">
             <span className="site-eyebrow">✦ Мир Самозанятых</span>
-            <h1>Всё необходимое для работы самозанятого.</h1>
-            <p>Единая платформа с AI-оператором Светланой: клиенты, документы, CRM, календарь, обучение, гранты и поиск возможностей.</p>
+            <h1>Рабочее пространство, где Светлана рядом.</h1>
+            <p>Клиенты, документы, CRM, календарь, обучение, финансы и возможности — в одном месте. Светлана помогает разобраться в задаче и пройти путь до проверяемого результата.</p>
             <div className="site-actions">
               <Link className="site-btn site-btn-primary site-btn-lg" to="/register">Начать бесплатно →</Link>
-              <Link className="site-btn site-btn-soft site-btn-lg" to="/calculator">Рассчитать НПД</Link>
+              <Link className="site-btn site-btn-soft site-btn-lg" to="/svetlana/capabilities">Посмотреть возможности</Link>
             </div>
             <div className="site-trust-row"><span>✓ Web + Android</span><span>✓ Единый аккаунт</span><span>✓ Проверяемые действия</span></div>
           </div>
-          <div className="site-hero-stage">
-            <div className="site-hero-glow" />
-            <div className="site-hero-avatar"><div className="site-avatar-ring"><SvetlanaAvatar emotion="HAPPY" size={270} /></div><div className="site-avatar-label"><strong>Светлана</strong><span>AI-оператор «Мира Самозанятых»</span></div></div>
+          <div className="site-hero-stage site-hero-welcome">
+            <video className="site-hero-video" autoPlay muted loop playsInline preload="metadata" poster={(import.meta.env.BASE_URL || '/') + 'svetlana-photo.jpg'} aria-label="Светлана приветствует посетителей">
+              <source src={(import.meta.env.BASE_URL || '/') + 'svetlana-welcome.mp4'} type="video/mp4" />
+            </video>
+            <div className="site-hero-video-shade" aria-hidden="true" />
+            <div className="site-hero-welcome-card">
+              <span className="site-live-dot">● Сейчас здесь</span>
+              <strong>Здравствуйте.<br />Рада видеть вас в «Мире Самозанятых».</strong>
+              <span>Светлана — ваш AI-оператор для рабочих задач.</span>
+            </div>
           </div>
         </div>
       </section>
