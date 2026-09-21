@@ -32,6 +32,102 @@ function flattenStats(obj, prefix = '') {
   return out;
 }
 
+function SiteAnalyticsPanel() {
+  const [days, setDays] = useState(30);
+  const resource = useResource(() => admin.siteAnalytics(days), [days]);
+  const report = resource.data;
+  const daily = report?.by_day ?? [];
+  const paths = report?.by_path ?? [];
+  const maxDaily = Math.max(1, ...daily.map((row) => Number(row.page_views) || 0));
+  const maxPath = Math.max(1, ...paths.slice(0, 10).map((row) => Number(row.page_views) || 0));
+
+  const downloadCsv = () => {
+    const rows = report?.by_day && report?.by_path
+      ? [
+          ['Отчёт', 'Мир Самозанятых'],
+          ['Период, дней', days],
+          ['Часовой пояс', report.timezone || 'Europe/Moscow'],
+          [],
+          ['Дата', 'Просмотры', 'Уникальные сессии'],
+          ...daily.map((row) => [row.day, row.page_views, row.unique_sessions]),
+          [],
+          ['Страница', 'Просмотры', 'Уникальные сессии'],
+          ...paths.map((row) => [row.path, row.page_views, row.unique_sessions]),
+        ]
+      : [];
+    if (!rows.length) return;
+    const csv = rows.map((row) => row.map((value) => '"' + String(value ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mir-samozanyatykh-site-report-' + days + 'd.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="card">
+      <div className="row between" style={{ gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h3 style={{ margin: '0 0 4px' }}>Закрытый отчёт об использовании сайта</h3>
+          <p className="muted small" style={{ margin: 0 }}>Доступен только администратору. Аналитика включается только после согласия на аналитические cookie.</p>
+        </div>
+        <div className="row" style={{ gap: 8 }}>
+          <select className="field" style={{ margin: 0, width: 130 }} value={days} onChange={(event) => setDays(Number(event.target.value))}>
+            <option value={7}>7 дней</option>
+            <option value={30}>30 дней</option>
+            <option value={90}>90 дней</option>
+            <option value={180}>180 дней</option>
+          </select>
+          <button className="btn" type="button" onClick={downloadCsv} disabled={!report}>Скачать CSV</button>
+        </div>
+      </div>
+
+      {resource.loading && <p className="muted">Загружаю отчёт…</p>}
+      {resource.error && <ErrorState error={resource.error} onRetry={resource.reload} />}
+      {!resource.loading && !resource.error && report && (
+        <>
+          <div className="grid grid-4" style={{ marginTop: 14 }}>
+            <div className="card"><h3>{Number(report.summary?.page_views ?? 0).toLocaleString('ru-RU')}</h3><p className="muted small">просмотров</p></div>
+            <div className="card"><h3>{Number(report.summary?.unique_sessions ?? 0).toLocaleString('ru-RU')}</h3><p className="muted small">уникальных сессий</p></div>
+            <div className="card"><h3>{Number(report.summary?.unique_paths ?? 0).toLocaleString('ru-RU')}</h3><p className="muted small">страниц</p></div>
+            <div className="card"><h3>{Number(report.summary?.referrer_origins ?? 0).toLocaleString('ru-RU')}</h3><p className="muted small">источников</p></div>
+          </div>
+
+          <div className="analytics-mini-grid">
+            <div>
+              <h4>По дням</h4>
+              {daily.length === 0 ? <p className="muted small">Пока нет данных.</p> : daily.slice(0, 14).map((row) => (
+                <div className="analytics-mini-row" key={row.day}>
+                  <span>{row.day}</span>
+                  <div><i style={{ width: ((Number(row.page_views) / maxDaily) * 100) + '%' }} /></div>
+                  <strong>{row.page_views}</strong>
+                </div>
+              ))}
+            </div>
+            <div>
+              <h4>Популярные страницы</h4>
+              {paths.length === 0 ? <p className="muted small">Пока нет данных.</p> : paths.slice(0, 10).map((row) => (
+                <div className="analytics-mini-row" key={row.path}>
+                  <span title={row.path}>{row.path}</span>
+                  <div><i style={{ width: ((Number(row.page_views) / maxPath) * 100) + '%' }} /></div>
+                  <strong>{row.page_views}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="site-analytics-privacy">
+            <strong>Контур хранения</strong>
+            <span>IP: нет · User-Agent: нет · account ID: нет · query string: нет · исходный analytics cookie: не хранится · публичный отчёт: нет · хранение событий: до 180 дней.</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function isForbidden(err) {
   return err?.status === 403 || err?.code === 'forbidden';
 }
@@ -135,6 +231,8 @@ export default function Admin() {
           </div>
         )}
       </Section>
+
+      <SiteAnalyticsPanel />
 
       <Section title="Пользователи" resource={users}>
         {(users.data?.data ?? []).length === 0 ? (

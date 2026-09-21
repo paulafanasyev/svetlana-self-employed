@@ -147,6 +147,90 @@ export default async function adminRoutes(fastify) {
     return { data: rows };
   });
 
+  // ---------- Private site usage report ----------
+  fastify.get('/site-analytics', async (request, reply) => {
+    if (!requireAdmin(request, reply)) return;
+
+    const rawDays = Number(request.query?.days ?? 30);
+    const days = Math.min(180, Math.max(1, Number.isFinite(rawDays) ? Math.floor(rawDays) : 30));
+    const since = Math.floor(Date.now() / 1000) - days * 86400;
+
+    const summary = db().prepare(
+      "SELECT COUNT(*) AS page_views, " +
+      "COUNT(DISTINCT session_hash) AS unique_sessions, " +
+      "COUNT(DISTINCT path) AS unique_paths, " +
+      "COUNT(DISTINCT referrer_origin) AS referrer_origins " +
+      "FROM site_analytics_events WHERE created_at >= ? AND event_type = 'page_view'"
+    ).get(since);
+
+    const byDay = db().prepare(
+      "SELECT day, COUNT(*) AS page_views, COUNT(DISTINCT session_hash) AS unique_sessions " +
+      "FROM site_analytics_events WHERE created_at >= ? AND event_type = 'page_view' " +
+      "GROUP BY day ORDER BY day DESC"
+    ).all(since);
+
+    const byPath = db().prepare(
+      "SELECT path, COUNT(*) AS page_views, COUNT(DISTINCT session_hash) AS unique_sessions " +
+      "FROM site_analytics_events WHERE created_at >= ? AND event_type = 'page_view' " +
+      "GROUP BY path ORDER BY page_views DESC, path ASC LIMIT 50"
+    ).all(since);
+
+    const byReferrer = db().prepare(
+      "SELECT COALESCE(referrer_origin, '(прямой вход)') AS referrer_origin, COUNT(*) AS page_views " +
+      "FROM site_analytics_events WHERE created_at >= ? AND event_type = 'page_view' " +
+      "GROUP BY referrer_origin ORDER BY page_views DESC LIMIT 50"
+    ).all(since);
+
+    const byHour = db().prepare(
+      "SELECT hour, COUNT(*) AS page_views " +
+      "FROM site_analytics_events WHERE created_at >= ? AND event_type = 'page_view' " +
+      "GROUP BY hour ORDER BY hour ASC"
+    ).all(since);
+
+    return {
+      period_days: days,
+      timezone: 'Europe/Moscow',
+      generated_at: new Date().toISOString(),
+      privacy: {
+        ip_stored: false,
+        user_agent_stored: false,
+        account_id_stored: false,
+        query_string_stored: false,
+        raw_session_cookie_stored: false,
+        public_endpoint: false,
+      },
+      summary: summary ?? { page_views: 0, unique_sessions: 0, unique_paths: 0, referrer_origins: 0 },
+      by_day: byDay,
+      by_path: byPath,
+      by_referrer: byReferrer,
+      by_hour: byHour,
+    };
+  });
+
+  fastify.get('/site-analytics.csv', async (request, reply) => {
+    if (!requireAdmin(request, reply)) return;
+
+    const rawDays = Number(request.query?.days ?? 30);
+    const days = Math.min(180, Math.max(1, Number.isFinite(rawDays) ? Math.floor(rawDays) : 30));
+    const since = Math.floor(Date.now() / 1000) - days * 86400;
+    const rows = db().prepare(
+      "SELECT day, path, COUNT(*) AS page_views, COUNT(DISTINCT session_hash) AS unique_sessions " +
+      "FROM site_analytics_events WHERE created_at >= ? AND event_type = 'page_view' " +
+      "GROUP BY day, path ORDER BY day DESC, page_views DESC"
+    ).all(since);
+
+    const escapeCsv = (value) => '"' + String(value ?? '').replace(/"/g, '""') + '"';
+    const csv = [
+      ['Дата (Москва)', 'Страница', 'Просмотры', 'Уникальные сессии'].map(escapeCsv).join(','),
+      ...rows.map((row) => [row.day, row.path, row.page_views, row.unique_sessions].map(escapeCsv).join(',')),
+    ].join('\\n');
+
+    reply
+      .header('content-type', 'text/csv; charset=utf-8')
+      .header('content-disposition', 'attachment; filename="site-analytics.csv"')
+      .send('\\ufeff' + csv);
+  });
+
   // ---------- System health, AI, RAG, integrations ----------
   fastify.get('/system', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;

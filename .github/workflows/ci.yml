@@ -83,6 +83,7 @@ jobs:
           VITE_BASE_PATH: '/${{ github.event.repository.name }}/'
           VITE_API_URL: 'https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1'
           VITE_PAGES_API_URL: 'https://mir-samozanyatykh-api-frankfurt.onrender.com/api/v1'
+          VITE_PUBLIC_ORIGIN: 'https://paulafanasyev.github.io/svetlana-self-employed'
       - name: Add SPA deep-link fallback (404.html)
         # GitHub Pages serves 404.html for unknown paths. We must NOT just copy
         # index.html (that keeps the 404 status and breaks deep links). Instead
@@ -118,12 +119,12 @@ jobs:
           echo "404.html: deep-link preserve + redirect to base path"
       - name: Add canonical-URL override for GitHub Pages
         run: |
-          # On the root domain the canonical is https://мир-самозанятых.рф/.
-          # On Pages we keep the same canonical to avoid duplicate SEO (§5),
-          # but robots must not index the Pages copy.
+          # GitHub Pages is the currently reachable public origin. Keep it indexable
+          # until the canonical custom domain is actually available.
           cat > web/dist/robots.txt <<'EOF'
           User-agent: *
-          Disallow: /
+          Allow: /
+          Sitemap: https://paulafanasyev.github.io/svetlana-self-employed/sitemap.xml
           EOF
       - uses: actions/upload-artifact@v7
         with:

@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { SvetlanaAvatar } from './SvetlanaAvatar.jsx';
+import CookieConsent, { CookieSettingsButton } from './CookieConsent.jsx';
 
 const NAV = [
   ['/', 'Главная', true],
   ['/about', 'О проекте'],
+  ['/organization', 'АНО ЦПС'],
+  ['/organization', 'АНО ЦПС'],
   ['/calculator', 'Калькулятор'],
   ['/marketplace', 'Маркетплейс'],
   ['/jobs', 'Работа'],
@@ -131,7 +134,6 @@ export default function PublicLayout({ children }) {
             {NAV.map(([to, label, end]) => (
               <NavLink key={to} to={to} end={Boolean(end)} className={({ isActive }) => isActive ? 'active' : ''}>{label}</NavLink>
             ))}
-            <NavLink to="/jobs">Работа</NavLink>
             <NavLink to="/app">Кабинет</NavLink>
             {user ? (
               <button className="site-btn site-btn-soft" type="button" onClick={() => navigate('/app')}>Мой кабинет</button>
@@ -156,8 +158,8 @@ export default function PublicLayout({ children }) {
             <p>Платформа для самозанятых, ИП и компаний: Светлана, CRM, документы, календарь, маркетплейс и обучение.</p>
           </div>
           <div><h4>Навигация</h4><Link to="/about">О проекте</Link><Link to="/jobs">Работа</Link><Link to="/projects">Проекты Самозанятых</Link><Link to="/education">Обучение</Link><Link to="/blog">Блог</Link></div>
-          <div><h4>Сервисы</h4><Link to="/calculator">Калькулятор</Link><Link to="/marketplace">Маркетплейс</Link><Link to="/grants">Гранты</Link><Link to="/svetlana">Светлана</Link></div>
-          <div><h4>Поддержка</h4><Link to="/contacts">Контакты</Link><Link to="/support">Поддержка</Link><Link to="/faq">FAQ</Link><Link to="/privacy">Конфиденциальность</Link></div>
+          <div><h4>Сервисы</h4><Link to="/calculator">Калькулятор</Link><Link to="/marketplace">Маркетплейс</Link><Link to="/jobs">Работа</Link><Link to="/grants">Гранты</Link><Link to="/svetlana">Светлана</Link></div>
+          <div><h4>Поддержка</h4><Link to="/organization">АНО ЦПС</Link><Link to="/cooperation">Сотрудничество</Link><Link to="/contacts">Контакты</Link><Link to="/support">Поддержка</Link><Link to="/faq">FAQ</Link><Link to="/privacy">Конфиденциальность</Link><Link to="/terms">Соглашение</Link><Link to="/cookies">Cookie</Link><CookieSettingsButton /></div>
         </div>
         <div className="site-container site-footer-bottom">
           <span>© {new Date().getFullYear()} Мир Самозанятых</span>
@@ -166,6 +168,7 @@ export default function PublicLayout({ children }) {
       </footer>
 
       <PublicChat />
+      <CookieConsent />
     </div>
   );
 }

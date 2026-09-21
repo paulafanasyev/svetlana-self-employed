@@ -40,7 +40,12 @@ const auth = (token) => (token ? { authorization: `Bearer ${token}` } : {});
 
 async function registerUser(email, name = 'E2E User') {
   const res = await post('/api/v1/auth/register', {
-    email, password: 'Test123456', display_name: name, consent_ai_processing: true,
+    email,
+    password: 'Test123456',
+    display_name: name,
+    consent_personal_data: true,
+    accept_terms: true,
+    consent_ai_processing: true,
   });
   assert.equal(res.statusCode, 201, `register ${email}: ${res.json()?.message ?? res.statusCode}`);
   return { token: res.json().access_token, id: res.json().user.id };
@@ -54,6 +59,27 @@ const newEmail = () => `e2e${process.pid}-${++seq}-${Math.random().toString(36).
 // ───────────────────────────────────────────────────────────────────────────
 // 1. REGISTER → ONBOARDING → SVETLANA → PROFILE
 // ───────────────────────────────────────────────────────────────────────────
+test('privacy: analytics stores only minimized consented telemetry', async () => {
+  const before = db().prepare('SELECT COUNT(*) AS n FROM site_analytics_events').get().n;
+  const res = await post('/api/v1/public/analytics', {
+    event_type: 'page_view',
+    path: '/jobs?city=Москва',
+    session_id: 'session-e2e-privacy-001',
+    referrer_origin: 'https://example.org/some/path',
+  });
+  assert.equal(res.statusCode, 202);
+  const row = db().prepare(
+    'SELECT event_type, path, session_hash, referrer_origin FROM site_analytics_events ORDER BY created_at DESC LIMIT 1'
+  ).get();
+  assert.equal(row.event_type, 'page_view');
+  assert.equal(row.path, '/jobs');
+  assert.equal(row.session_hash.length, 64);
+  assert.notEqual(row.session_hash, 'session-e2e-privacy-001');
+  assert.equal(row.referrer_origin, 'https://example.org');
+  const after = db().prepare('SELECT COUNT(*) AS n FROM site_analytics_events').get().n;
+  assert.equal(after, before + 1);
+});
+
 test('1. register → onboarding → svetlana → profile', async () => {
   const { token } = await registerUser(newEmail(), 'Анна');
 

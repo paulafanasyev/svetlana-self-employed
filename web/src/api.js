@@ -115,8 +115,8 @@ export const api = {
 
 /** Auth */
 export const auth = {
-  register: ({ email, password, display_name, role }) =>
-    api.post('/auth/register', { email, password, display_name, role, consent_ai_processing: true }),
+  register: ({ email, password, display_name, role, consent_personal_data, accept_terms, consent_ai_processing = false }) =>
+    api.post('/auth/register', { email, password, display_name, role, consent_personal_data, accept_terms, consent_ai_processing }),
   login: ({ email, password }) => api.post('/auth/login', { email, password }),
   logout: () => api.post('/auth/logout'),
   me: () => api.get('/auth/me'),
@@ -353,6 +353,8 @@ export const admin = {
   system: () => api.get('/admin/system'),
   audit: (params = '') => api.get(`/admin/audit${params}`),
   ragStats: () => api.get('/admin/rag/stats'),
+  siteAnalytics: (days = 30) => api.get('/admin/site-analytics?days=' + encodeURIComponent(days)),
+  siteAnalyticsCsv: (days = 30) => api.get('/admin/site-analytics.csv?days=' + encodeURIComponent(days)),
 };
 
 

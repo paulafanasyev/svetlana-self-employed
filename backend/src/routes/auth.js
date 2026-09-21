@@ -26,7 +26,9 @@ const registerSchema = z.object({
   password: z.string().min(8, 'Пароль минимум 8 символов').max(100),
   display_name: z.string().min(2, 'Укажите имя').max(80),
   role: z.enum(['user', 'expert', 'training_center']).default('user'),
-  consent_ai_processing: z.boolean().refine((v) => v === true, 'Требуется согласие на обработку'),
+  consent_personal_data: z.boolean().refine((v) => v === true, 'Требуется согласие на обработку персональных данных'),
+  accept_terms: z.boolean().refine((v) => v === true, 'Нужно принять Соглашение пользователя'),
+  consent_ai_processing: z.boolean().default(false),
 });
 
 const loginSchema = z.object({
@@ -65,9 +67,12 @@ export default async function authRoutes(fastify) {
         .prepare(`INSERT INTO profiles (id, user_id, display_name) VALUES (?, ?, ?)`)
         .run(nanoid(), id, body.display_name);
       // Consent is a legal record, not a flag on the user.
-      db()
-        .prepare(`INSERT INTO consents (id, user_id, scope, granted, policy_version) VALUES (?, ?, ?, 1, ?)`)
-        .run(nanoid(), id, 'ai_processing', '1.0');
+      const addConsent = (scope) => db()
+        .prepare('INSERT INTO consents (id, user_id, scope, granted, policy_version) VALUES (?, ?, ?, 1, ?)')
+        .run(nanoid(), id, scope, '2.0');
+      addConsent('personal_data');
+      addConsent('user_agreement');
+      if (body.consent_ai_processing) addConsent('ai_processing');
     });
 
     const user = db().prepare('SELECT * FROM users WHERE id = ?').get(id);
@@ -222,7 +227,7 @@ export default async function authRoutes(fastify) {
     if (!body) return;
     db()
       .prepare('INSERT INTO consents (id, user_id, scope, granted, policy_version) VALUES (?, ?, ?, ?, ?)')
-      .run(nanoid(), request.user.id, body.scope, body.granted ? 1 : 0, '1.0');
+      .run(nanoid(), request.user.id, body.scope, body.granted ? 1 : 0, '2.0');
     auditRequest(request, 'consent_change', 'consent', null, body);
     reply.code(201).send({ ok: true });
   });

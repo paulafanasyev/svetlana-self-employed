@@ -67,6 +67,27 @@ function Home() {
         </div>
       </section>
 
+      <section className="site-section site-section-organization">
+        <div className="site-container site-two-col site-mission-grid">
+          <div>
+            <span className="site-eyebrow">АНО ЦПС «Мир Самозанятых»</span>
+            <h2>Поддержка самозанятых — не один сервис, а целая экосистема</h2>
+            <p>Мы помогаем самозанятым работать, находить клиентов и работу, получать профессиональные знания, развивать собственные проекты и пользоваться возможностями поддержки. Для этого соединяем цифровые инструменты, региональные возможности и партнёрскую сеть.</p>
+            <div className="site-actions">
+              <Link className="site-btn site-btn-primary" to="/organization">Что делает АНО ЦПС →</Link>
+              <Link className="site-btn site-btn-soft" to="/cooperation">Сотрудничество</Link>
+            </div>
+          </div>
+          <div className="site-mission-pillars">
+            {[
+              ['📍', 'Ваш город', 'Работа, обучение, поддержка и гранты с учётом региона.'],
+              ['🤝', 'Ваши связи', 'Заказчики, эксперты, учебные центры и партнёры вокруг реальных задач.'],
+              ['🚀', 'Ваш проект', 'Поддержка идеи и собственного проекта самозанятого.'],
+            ].map(([icon, title, text]) => <article className="site-card" key={title}><div className="site-feature-icon">{icon}</div><h3>{title}</h3><p>{text}</p></article>)}
+          </div>
+        </div>
+      </section>
+
       <section className="site-section site-section-muted">
         <div className="site-container site-two-col">
           <div><span className="site-eyebrow">Как это работает</span><h2>От запроса до подтверждённого результата</h2><p>Светлана разбирает запрос, формирует план, вызывает доступные инструменты и показывает результат с понятным статусом.</p></div>
