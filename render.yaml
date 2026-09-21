@@ -45,6 +45,12 @@ services:
         value: "false"
       - key: AI_PROVIDER_ORDER
         value: atria,openrouter,openai,local
+      - key: ATRIA_BASE_URL
+        value: https://api.atria-asi.ai/v1
+      - key: ATRIA_MODEL
+        value: Atria-Dawn-Preview
+      - key: ATRIA_API_KEY
+        sync: false
       - key: EMBEDDING_PROVIDER
         value: none
       - key: RATE_LIMIT_MAX
