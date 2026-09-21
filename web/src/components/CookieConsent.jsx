@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { publicDiscovery } from '../api.js';
+import { useLocation } from 'react-router-dom';
 
 const CONSENT_COOKIE = 'ms_cookie_consent';
 const ANALYTICS_COOKIE = 'ms_analytics_id';
@@ -148,6 +148,7 @@ function CookieConsentModal({ onClose }) {
 }
 
 export default function CookieConsent() {
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -164,9 +165,17 @@ export default function CookieConsent() {
 
   useEffect(() => {
     if (!analyticsAllowed()) return undefined;
-    void sendAnalyticsEvent('page_view', window.location.pathname);
+    const path = location.pathname || '/';
+    const key = 'ms_last_tracked_path';
+    try {
+      const previous = JSON.parse(sessionStorage.getItem(key) || 'null');
+      const now = Date.now();
+      if (previous?.path === path && now - Number(previous.time || 0) < 30 * 60 * 1000) return undefined;
+      sessionStorage.setItem(key, JSON.stringify({ path, time: now }));
+    } catch {}
+    void sendAnalyticsEvent('page_view', path);
     return undefined;
-  }, [window.location.pathname]);
+  }, [location.pathname]);
 
   useEffect(() => {
     const onConsent = () => {
