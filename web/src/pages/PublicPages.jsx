@@ -42,7 +42,11 @@ function Home() {
             <div className="site-trust-row"><span>✓ Web + Android</span><span>✓ Единый аккаунт</span><span>✓ Проверяемые действия</span></div>
           </div>
           <div className="site-hero-stage site-hero-welcome">
-            <video className="site-hero-video" autoPlay muted loop playsInline preload="metadata" poster={(import.meta.env.BASE_URL || '/') + 'svetlana-photo.jpg'} aria-label="Светлана приветствует посетителей">
+            <div className="site-hero-media-fallback" aria-label="Светлана">
+              <SvetlanaAvatar emotion="HAPPY" size={360} />
+              <span>Светлана · AI-оператор «Мира Самозанятых»</span>
+            </div>
+            <video className="site-hero-video" autoPlay muted loop playsInline preload="metadata" poster={(import.meta.env.BASE_URL || '/') + 'svetlana-photo.jpg'} aria-label="Светлана приветствует посетителей" onError={(event) => { event.currentTarget.hidden = true; event.currentTarget.closest('.site-hero-welcome')?.classList.add('is-fallback'); }}>
               <source src={(import.meta.env.BASE_URL || '/') + 'svetlana-welcome.mp4'} type="video/mp4" />
             </video>
             <div className="site-hero-video-shade" aria-hidden="true" />
@@ -59,6 +63,7 @@ function Home() {
         <div className="site-container">
           <div className="site-section-head"><span className="site-eyebrow">Возможности</span><h2>Рабочее пространство в одном месте</h2><p>Публичный сайт объясняет продукт, а после регистрации открывается реальное рабочее пространство.</p></div>
           <div className="site-feature-grid">{FEATURES.map(([icon, title, text]) => <article key={title} className="site-card site-feature-card"><div className="site-feature-icon">{icon}</div><h3>{title}</h3><p>{text}</p></article>)}</div>
+          <div className="site-home-opportunities"><div><span className="site-eyebrow">География</span><h2>Работа, обучение и поддержка в вашем городе</h2><p>Выберите город — и сайт покажет локальные вакансии, обучение и меры поддержки. Отдельно подключается поиск вакансий из «Работы России».</p></div><Link className="site-btn site-btn-primary" to="/jobs">Выбрать город →</Link></div>
         </div>
       </section>
 
@@ -116,6 +121,179 @@ function Calculator() {
   );
 }
 
+
+
+function AboutProjectPage() {
+  const capabilities = [
+    ['🧾', 'НПД и работа с правилами', 'Помогает разбираться с регистрацией, чеками, налоговыми вопросами и искать официальные источники перед принятием решения.'],
+    ['👥', 'Клиенты и CRM', 'Помогает создавать карточки клиентов, вести лиды, сделки, проекты и задачи в одном рабочем контексте.'],
+    ['📄', 'Документы', 'Помогает собрать данные для договора, акта и других документов, показывает предпросмотр и требует подтверждения там, где действие чувствительное.'],
+    ['📅', 'Планирование', 'Связывает задачи, календарь и напоминания, чтобы рабочие сроки не жили в разных приложениях.'],
+    ['💼', 'Работа и маркетплейс', 'Помогает искать заказы, услуги, вакансии и специалистов, а также готовить отклики и объявления.'],
+    ['🎓', 'Обучение', 'Помогает найти курсы, экспертов и профессиональные центры с учётом города пользователя.'],
+    ['🎁', 'Поддержка и гранты', 'Помогает искать федеральные и региональные меры поддержки; перед подачей заявки пользователь переходит к официальному источнику.'],
+    ['📍', 'География', 'Город и регион становятся частью рабочего контекста: поиск работы, обучение, проекты и меры поддержки показываются с учётом территории.'],
+    ['✅', 'Проверка результата', 'Для инструментальных действий в кабинете предусмотрен принцип: не считать действие выполненным только потому, что модель сформировала ответ.'],
+  ];
+
+  return (
+    <>
+      <PageIntro
+        eyebrow="О проекте"
+        title="Мы обучили Светлану работать вокруг реальных задач самозанятого"
+        text="«Мир Самозанятых» создаётся как рабочая экосистема: знания, документы, CRM, рынок, обучение, поддержка и AI-оператор Светлана должны помогать человеку работать, а не добавлять ещё один отдельный сервис."
+        actions={[
+          ['Посмотреть возможности Светланы', '/svetlana/capabilities', 'primary'],
+          ['Найти работу и обучение', '/jobs', 'soft'],
+        ]}
+      />
+      <section className="site-section">
+        <div className="site-container">
+          <div className="site-section-head site-section-head-left">
+            <span className="site-eyebrow">Чему обучена Светлана</span>
+            <h2>От вопроса к рабочему действию</h2>
+            <p>Светлана проектируется не как чат ради чата. Её задача — понимать рабочий контекст пользователя, предложить понятный следующий шаг и не выдавать неподтверждённый результат за выполненный.</p>
+          </div>
+          <div className="site-feature-grid site-feature-grid-3">
+            {capabilities.map(([icon, title, text]) => (
+              <article className="site-card site-feature-card site-capability-card" key={title}>
+                <div className="site-feature-icon">{icon}</div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="site-section site-section-muted">
+        <div className="site-container site-two-col">
+          <div>
+            <span className="site-eyebrow">Как устроен подход</span>
+            <h2>Светлана помогает самозанятому увидеть весь путь целиком</h2>
+            <p>От первого обращения клиента до документа, оплаты, задачи и следующего шага. При необходимости пользователь сам выполняет действие, а Светлана помогает подготовить данные и навигацию.</p>
+          </div>
+          <div className="site-stack">
+            {[
+              ['01', 'Контекст', 'Профиль, город, специализация и текущие задачи формируют рабочий контекст.'],
+              ['02', 'План', 'Светлана раскладывает запрос на понятные шаги и показывает, какие инструменты доступны.'],
+              ['03', 'Действие', 'Чувствительные операции требуют подтверждения пользователя.'],
+              ['04', 'Проверка', 'После действия интерфейс должен показывать фактический статус, а не предположение модели.'],
+            ].map(([n, t, d]) => (
+              <article className="site-step" key={n}><span>{n}</span><div><h3>{t}</h3><p>{d}</p></div></article>
+            ))}
+          </div>
+        </div>
+      </section>
+      <section className="site-section">
+        <div className="site-container site-cta-box">
+          <div><span className="site-eyebrow">Для самозанятых России</span><h2>Один сайт для работы, развития и поиска возможностей</h2><p>Выберите город, найдите работу или обучение, посмотрите поддержку и при необходимости переходите в рабочее пространство.</p></div>
+          <Link to="/jobs" className="site-btn site-btn-primary site-btn-lg">Выбрать город →</Link>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function MarketplaceLandingPage() {
+  return (
+    <>
+      <PageIntro
+        eyebrow="Маркетплейс"
+        title="Работа, проекты, услуги и специалисты"
+        text="Здесь самозанятый может находить заказы и клиентов, предлагать свои услуги, искать партнёров и переходить к вакансиям. Для вакансий можно использовать географию и официальный источник «Работа России»."
+        actions={[
+          ['Найти работу в своём городе', '/jobs', 'primary'],
+          ['Посмотреть проекты Самозанятых', '/projects', 'soft'],
+        ]}
+      />
+      <section className="site-section">
+        <div className="site-container site-feature-grid">
+          {[
+            ['💼', 'Вакансии', 'Работа в выбранном городе, удалённые предложения и дополнительная выдача официальных открытых данных «Работы России».'],
+            ['🛒', 'Проекты и заказы', 'Заказчики публикуют задачи, специалисты откликаются, а профиль помогает оценивать соответствие навыков.'],
+            ['🧰', 'Услуги', 'Самозанятые могут размещать свои услуги и находить клиентов внутри платформы.'],
+            ['🤝', 'Взаимодействие', 'Партнёрство, отклики и рабочие контакты строятся вокруг конкретной задачи, а не отдельного чата без контекста.'],
+            ['📍', 'География', 'Город и регион помогают искать локальную работу, обучение, поддержку и гранты.'],
+            ['🎓', 'Развитие', 'Обучение и профессиональные центры можно искать с учётом города пользователя.'],
+          ].map(([icon, title, text]) => (
+            <article key={title} className="site-card site-feature-card">
+              <div className="site-feature-icon">{icon}</div>
+              <h2>{title}</h2>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ProjectsSelfEmployedPage() {
+  const projects = [
+    {
+      tag: 'AI · здоровье · SMART-гимнастика',
+      title: 'Я-Зарядка AI',
+      text: 'Цифровой проект регулярной физической активности и цифровых сервисов вокруг здорового рабочего ритма.',
+      href: 'https://я-зарядка.рф/',
+      action: 'Открыть проект ↗',
+    },
+    {
+      tag: 'В РАЗРАБОТКЕ',
+      title: 'Bridge / «Два Сердца»',
+      text: 'Кросс-культурный проект между Китаем и Россией с голосовым переводом и цифровыми сервисами взаимодействия.',
+    },
+    {
+      tag: 'В РАЗРАБОТКЕ',
+      title: 'AI English & Math Teacher',
+      text: 'Образовательный проект с AI-инструментами, языковым обучением, математикой и цифровыми аватарами.',
+    },
+  ];
+
+  return (
+    <>
+      <PageIntro
+        eyebrow="IT-Laboratory · поддержка проектов"
+        title="Проекты Самозанятых"
+        text="Мы ищем талантливых самозанятых с собственными проектами и помогаем доводить идеи до внедрения, первых продаж и масштабирования."
+      />
+      <section className="site-section">
+        <div className="site-container site-feature-grid">
+          {projects.map((project) => (
+            <article className="site-card project-card" key={project.title}>
+              <span className="site-eyebrow">{project.tag}</span>
+              <h2>{project.title}</h2>
+              <p>{project.text}</p>
+              {project.href ? (
+                <a className="site-btn site-btn-primary" href={project.href} target="_blank" rel="noreferrer">{project.action}</a>
+              ) : (
+                <span className="site-btn site-btn-soft" aria-disabled="true">В разработке</span>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="site-section site-section-muted">
+        <div className="site-container site-two-col">
+          <article className="site-card"><div className="site-feature-icon">💡</div><h2>Кого мы ищем</h2><p>Самозанятых разработчиков, дизайнеров, AI-специалистов, маркетологов, авторов, преподавателей и экспертов, у которых уже есть собственный проект или сильная идея.</p></article>
+          <article className="site-card"><div className="site-feature-icon">🚀</div><h2>Что можем сделать вместе</h2><p>Аудит и упаковка продукта, UX/UI, прототипирование, техническое внедрение, AI-инструменты, контент и продвижение, поиск партнёров и клиентов, презентации, гранты и выход проекта на рынок.</p></article>
+        </div>
+      </section>
+      <section className="site-section">
+        <div className="site-container">
+          <div className="site-cta-box project-submit">
+            <div>
+              <span className="site-eyebrow">Приглашение для самозанятых</span>
+              <h2>Предложите свой проект</h2>
+              <p>Опишите идею, текущий результат и какую поддержку вы ищете: внедрение, продвижение, партнёры, инвестиции, грант или субсидию.</p>
+            </div>
+            <a className="site-btn site-btn-primary site-btn-lg" href="mailto:it-laboratory@bk.ru?subject=Проект самозанятого">Отправить проект →</a>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 function InfoPage({ kind }) {
   const pages = {
     about: { eyebrow: 'О проекте', title: 'Мир Самозанятых — единое рабочее пространство', text: 'Платформа объединяет инструменты, которые обычно находятся в разных сервисах: CRM, документы, задачи, календарь, финансы, поиск возможностей, обучение и AI-оператор Светлана.', sections: [['Принцип продукта', 'Пользователь сначала видит задачу и результат, а интерфейс помогает пройти путь без лишней сложности.'], ['Светлана', 'В рабочем пространстве Светлана использует общий API, реестр инструментов и проверки результата. Для чувствительных операций предусмотрено подтверждение.'], ['Данные', 'Персональные данные и рабочие записи должны обрабатываться через backend продукта; публичный сайт не показывает чужие аккаунты или записи.']] },
@@ -158,8 +336,11 @@ function ServicePage({ title, text, items, action = '/register' }) {
 export default function PublicPages({ page = 'home' }) {
   if (page === 'home') return <Home />;
   if (page === 'calculator') return <Calculator />;
+  if (page === 'about') return <AboutProjectPage />;
+  if (page === 'projects') return <ProjectsSelfEmployedPage />;
+  if (page === 'marketplace') return <MarketplaceLandingPage />;
   if (page === 'blog') return <Blog />;
-  if (['about','projects','education','marketplace','downloads','contacts','faq','support','privacy','terms','dashboard','profile','svetlana','achievements'].includes(page)) return <InfoPage kind={page} />;
+  if (['education','marketplace','downloads','contacts','faq','support','privacy','terms','dashboard','profile','svetlana','achievements'].includes(page)) return <InfoPage kind={page} />;
   if (page === 'contracts') return <ServicePage title="Договоры и документы" text="Рабочий раздел для создания и согласования документов на основе данных сделки." items={[['Шаблоны', 'Создание документа из структурированных данных рабочего пространства.', '📄'], ['Предпросмотр', 'Проверка перед утверждением и отправкой.', '🔎'], ['Статусы', 'Понимание, что реально создано и что требует действия пользователя.', '✓']]} />;
   if (page === 'crm') return <ServicePage title="CRM для самозанятого" text="Клиенты, компании, лиды, сделки, проекты и задачи собраны в одном рабочем пространстве." items={[['Клиенты', 'Карточки клиентов и контакты.', '👥'], ['Сделки', 'Статусы и суммы без дублирования информации.', '🤝'], ['Задачи', 'Связанные действия и сроки.', '✅']]} />;
   if (page === 'finance') return <ServicePage title="Финансы" text="Рабочие инструменты для счетов, поступлений и финансовых операций." items={[['Счета', 'Создание и контроль инвойсов.', '💳'], ['Доходы', 'Аналитика на базе реальных записей аккаунта.', '📈'], ['Платежи', 'Статусы и провайдеры отображаются только из backend.', '✓']]} />;

@@ -9,6 +9,7 @@ import { SvetlanaAvatar } from './components/SvetlanaAvatar.jsx';
 import PublicLayout from './components/PublicLayout.jsx';
 import PublicPages from './pages/PublicPages.jsx';
 import SvetlanaCapabilities from './pages/SvetlanaCapabilities.jsx';
+import RegionalHub from './pages/RegionalHub.jsx';
 
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -146,6 +147,7 @@ export default function App() {
       <Route path="/about" element={<PublicRoute page="about" />} />
       <Route path="/calculator" element={<PublicRoute page="calculator" />} />
       <Route path="/marketplace" element={<PublicRoute page="marketplace" />} />
+      <Route path="/jobs" element={<PublicLayout><RegionalHub /></PublicLayout>} />
       <Route path="/education" element={<PublicRoute page="education" />} />
       <Route path="/projects" element={<PublicRoute page="projects" />} />
       <Route path="/downloads" element={<PublicRoute page="downloads" />} />

@@ -289,6 +289,18 @@ export const education = {
   becomeExpert: (body) => api.post('/courses/experts', body),
 };
 
+export const publicDiscovery = {
+  geo: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.city) query.set('city', params.city);
+    if (params.region) query.set('region', params.region);
+    if (params.q) query.set('q', params.q);
+    if (params.limit) query.set('limit', String(params.limit));
+    const suffix = query.toString() ? '?' + query.toString() : '';
+    return api.get('/public/geo' + suffix);
+  },
+};
+
 export const government = {
   grants: (params = '') => api.get(`/grants${params}`),
   grantsPersonalized: () => api.get('/grants/personalized'),
