@@ -8,6 +8,7 @@ import { probeHealth } from './api.js';
 import { SvetlanaAvatar } from './components/SvetlanaAvatar.jsx';
 import PublicLayout from './components/PublicLayout.jsx';
 import PublicPages from './pages/PublicPages.jsx';
+import SvetlanaCapabilities from './pages/SvetlanaCapabilities.jsx';
 
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -162,6 +163,7 @@ export default function App() {
       <Route path="/dashboard" element={<PublicRoute page="dashboard" />} />
       <Route path="/profile" element={<PublicRoute page="profile" />} />
       <Route path="/svetlana" element={<PublicRoute page="svetlana" />} />
+      <Route path="/svetlana/capabilities" element={<PublicLayout><SvetlanaCapabilities /></PublicLayout>} />
       <Route path="/achievements" element={<PublicRoute page="achievements" />} />
 
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
