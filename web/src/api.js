@@ -353,6 +353,8 @@ export const admin = {
   system: () => api.get('/admin/system'),
   audit: (params = '') => api.get(`/admin/audit${params}`),
   ragStats: () => api.get('/admin/rag/stats'),
+  siteAnalytics: (days = 30) => api.get('/admin/site-analytics?days=' + encodeURIComponent(days)),
+  siteAnalyticsCsv: (days = 30) => api.get('/admin/site-analytics.csv?days=' + encodeURIComponent(days)),
 };
 
 
