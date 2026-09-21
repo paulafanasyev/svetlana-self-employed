@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://мир-самозанятых.рф/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://мир-самозанятых.рф/login</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://мир-самозанятых.рф/register</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <!-- Рабочие разделы (/app/...) доступны после входа и не индексируются -->
+  <url><loc>https://мир-самозанятых.рф/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://мир-самозанятых.рф/about</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://мир-самозанятых.рф/calculator</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://мир-самозанятых.рф/marketplace</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://мир-самозанятых.рф/education</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://мир-самозанятых.рф/projects</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://мир-самозанятых.рф/downloads</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://мир-самозанятых.рф/blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://мир-самозанятых.рф/contacts</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://мир-самозанятых.рф/faq</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://мир-самозанятых.рф/support</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://мир-самозанятых.рф/privacy</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://мир-самозанятых.рф/terms</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://мир-самозанятых.рф/login</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://мир-самозанятых.рф/register</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

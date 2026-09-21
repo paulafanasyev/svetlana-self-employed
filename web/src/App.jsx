@@ -1,20 +1,16 @@
 /**
- * App shell: router + workspace layout.
- *
- * Public marketing site (§35) lives at /, /*. The authenticated workspace
- * (§34) lives under /app/* — after registration the user lands in the real
- * workspace, not a marketing page.
+ * Router for the public marketing site and the authenticated workspace.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './auth.jsx';
-import { isBackendAvailable, probeHealth } from './api.js';
+import { probeHealth } from './api.js';
 import { SvetlanaAvatar } from './components/SvetlanaAvatar.jsx';
+import PublicLayout from './components/PublicLayout.jsx';
+import PublicPages from './pages/PublicPages.jsx';
 
-import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
-
 import Dashboard from './pages/Dashboard.jsx';
 import SvetlanaPage from './pages/Svetlana.jsx';
 import Clients from './pages/Clients.jsx';
@@ -42,7 +38,6 @@ import Profile from './pages/Profile.jsx';
 import Settings from './pages/Settings.jsx';
 import Admin from './pages/Admin.jsx';
 
-/** §34 navigation — the full workspace structure. */
 const NAV = [
   { group: 'Светлана', items: [
     { to: '/app', icon: '🏠', label: 'Обзор', end: true },
@@ -93,9 +88,7 @@ function BackendBadge() {
   }, []);
   if (state.checking) return <span className="badge">⏳ проверка API…</span>;
   if (state.ok) return <span className="badge ok" title="Backend отвечает">● API онлайн</span>;
-  return (
-    <span className="badge err" title={state.reason}>● API недоступен</span>
-  );
+  return <span className="badge err" title={state.reason}>● API недоступен</span>;
 }
 
 function WorkspaceLayout({ children }) {
@@ -108,8 +101,7 @@ function WorkspaceLayout({ children }) {
 
   const title = useMemo(() => {
     for (const group of NAV) {
-      const hit = group.items.find((i) =>
-        i.end ? location.pathname === i.to : location.pathname.startsWith(i.to));
+      const hit = group.items.find((i) => i.end ? location.pathname === i.to : location.pathname.startsWith(i.to));
       if (hit) return hit.label;
     }
     return 'Рабочее пространство';
@@ -117,50 +109,27 @@ function WorkspaceLayout({ children }) {
 
   return (
     <div className="app">
-      <aside className={`sidebar ${open ? 'open' : ''}`} aria-label="Главное меню">
-        <Link to="/app" className="brand">
-          <SvetlanaAvatar emotion="IDLE" size={34} />
-          <span>Мир Самозанятых<small>Светлана — AI-оператор</small></span>
-        </Link>
-        <nav className="nav">
-          {NAV.map((g) => (
-            <div key={g.group}>
-              <div className="nav-group">{g.group}</div>
-              {g.items.map((i) => (
-                <NavLink key={i.to} to={i.to} end={i.end} className={() => undefined}>
-                  <span className="emoji" aria-hidden="true">{i.icon}</span> {i.label}
-                </NavLink>
-              ))}
-            </div>
-          ))}
-        </nav>
-        <div className="sidebar-foot">
-          <div className="row between">
-            <span>{user?.email}</span>
-            <button className="btn btn-sm" onClick={() => { logout(); navigate('/login'); }}>Выйти</button>
-          </div>
-        </div>
+      <aside className={'sidebar ' + (open ? 'open' : '')} aria-label="Главное меню">
+        <Link to="/app" className="brand"><SvetlanaAvatar emotion="IDLE" size={34} /><span>Мир Самозанятых<small>Светлана — AI-оператор</small></span></Link>
+        <nav className="nav">{NAV.map((g) => <div key={g.group}><div className="nav-group">{g.group}</div>{g.items.map((i) => <NavLink key={i.to} to={i.to} end={i.end}><span className="emoji" aria-hidden="true">{i.icon}</span> {i.label}</NavLink>)}</div>)}</nav>
+        <div className="sidebar-foot"><div className="row between"><span>{user?.email}</span><button className="btn btn-sm" onClick={() => { logout(); navigate('/login'); }}>Выйти</button></div></div>
       </aside>
-
       <div className="main">
-        <header className="topbar">
-          <button className="hamburger" onClick={() => setOpen((v) => !v)} aria-label="Меню">☰</button>
-          <h1>{title}</h1>
-          <span className="spacer" />
-          <BackendBadge />
-          <NavLink to="/app/svetlana" className="btn btn-primary btn-sm">✨ Светлана</NavLink>
-        </header>
+        <header className="topbar"><button className="hamburger" onClick={() => setOpen((v) => !v)} aria-label="Меню">☰</button><h1>{title}</h1><span className="spacer" /><BackendBadge /><NavLink to="/app/svetlana" className="btn btn-primary btn-sm">✨ Светлана</NavLink></header>
         <main className="content">{children}</main>
       </div>
     </div>
   );
 }
 
-/** Redirect to the workspace when already authenticated. */
 function PublicOnly({ children }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   return user ? <Navigate to="/app" replace /> : children;
+}
+
+function PublicRoute({ page }) {
+  return <PublicLayout><PublicPages page={page} /></PublicLayout>;
 }
 
 function Protected({ children }) {
@@ -172,7 +141,25 @@ function Protected({ children }) {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<PublicOnly><Landing /></PublicOnly>} />
+      <Route path="/" element={<PublicRoute page="home" />} />
+      <Route path="/about" element={<PublicRoute page="about" />} />
+      <Route path="/calculator" element={<PublicRoute page="calculator" />} />
+      <Route path="/marketplace" element={<PublicRoute page="marketplace" />} />
+      <Route path="/education" element={<PublicRoute page="education" />} />
+      <Route path="/projects" element={<PublicRoute page="projects" />} />
+      <Route path="/downloads" element={<PublicRoute page="downloads" />} />
+      <Route path="/blog" element={<PublicRoute page="blog" />} />
+      <Route path="/contacts" element={<PublicRoute page="contacts" />} />
+      <Route path="/faq" element={<PublicRoute page="faq" />} />
+      <Route path="/support" element={<PublicRoute page="support" />} />
+      <Route path="/privacy" element={<PublicRoute page="privacy" />} />
+      <Route path="/terms" element={<PublicRoute page="terms" />} />
+      <Route path="/contracts" element={<PublicRoute page="contracts" />} />
+      <Route path="/crm" element={<PublicRoute page="crm" />} />
+      <Route path="/finance" element={<PublicRoute page="finance" />} />
+      <Route path="/calendar" element={<PublicRoute page="calendar" />} />
+      <Route path="/grants" element={<PublicRoute page="grants" />} />
+
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
       <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
 
