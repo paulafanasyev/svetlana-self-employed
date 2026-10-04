@@ -83,5 +83,6 @@ export default function PublicSvetlanaChat() {
         </div>
       </div>
     </section>
-  );
-}
+      </>
+    );
+  }
