@@ -218,12 +218,12 @@ export default function SvetlanaPage() {
 
       <div className="stack">
         <div className="card" style={{ textAlign: 'center' }}>
-          <div className="avatar-wrap" style={{ margin: '0 auto', width: 128, height: 128 }}>
-            <SvetlanaAvatar live emotion={emotion} size={128} />
+          <div className="sv-svetlana-hero-avatar">
+            <SvetlanaAvatar live fullHead emotion={emotion} size={360} />
             <span className={`emotion-ring ${ringClass}`} />
           </div>
-          <h3 style={{ marginTop: 12 }}>Светлана</h3>
-          <p className="muted small">Эмоция связана с результатом действий, а не случайна</p>
+          <h2 style={{ marginTop: 14, marginBottom: 6 }}>Светлана</h2>
+          <p className="muted small">Целиком говорящая голова из архива: голос, липсинк и эмоции работают непосредственно на этой странице.</p>
         </div>
 
         <div className="card">
