@@ -32,8 +32,21 @@ export default function PublicSvetlanaChat() {
   }
 
   return (
-    <section className="site-section">
-      <div className="site-container site-two-col">
+    <>
+      <section className="site-section">
+        <div className="site-container">
+          <div className="site-card" style={{ textAlign: 'center' }}>
+            <div className="sv-svetlana-hero-avatar">
+              <SvetlanaAvatar live fullHead emotion={busy ? 'THINKING' : 'IDLE'} size={360} />
+            </div>
+            <h2 style={{ marginTop: 14, marginBottom: 6 }}>Светлана</h2>
+            <p className="muted small">Целиком говорящая голова из архива: эмоции, моргание, движение головы и lip-sync работают прямо на этой странице.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="site-section">
+        <div className="site-container site-two-col">
         <div className="site-card">
           <div className="row" style={{ alignItems: 'center', gap: 12 }}>
             <SvetlanaAvatar live emotion={busy ? 'THINKING' : 'IDLE'} size={56} />
