@@ -30,6 +30,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import android.speech.tts.TextToSpeech
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
+import java.util.Locale
 import com.mirsamopro.network.ApiClient
 import com.mirsamopro.network.AuthApi
 import com.mirsamopro.network.ApiException
@@ -53,7 +57,18 @@ fun ChatScreen(onLogout: () -> Unit) {
     val messages = remember { mutableStateListOf<JSONObject>() }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-
+    val context = LocalContext.current
+    val tts = remember {
+        lateinit var engine: TextToSpeech
+        engine = TextToSpeech(context.applicationContext) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                engine.setLanguage(Locale.forLanguageTag("ru-RU"))
+                engine.setPitch(1.08f)
+            }
+        }
+        engine
+    }
+    DisposableEffect(Unit) { onDispose { tts.stop(); tts.shutdown() } }
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
@@ -121,7 +136,7 @@ fun ChatScreen(onLogout: () -> Unit) {
                 Button(
                     enabled = !busy && input.isNotBlank(),
                     onClick = {
-                        val text = input.trim(); input = ""; busy = true; emotion = "THINKING"
+                        val text = input.trim(); input = ""; busy = true; tts.stop(); emotion = "THINKING"
                         messages.add(JSONObject().put("role", "user").put("content", text))
                         scope.launch {
                             try {
@@ -129,6 +144,7 @@ fun ChatScreen(onLogout: () -> Unit) {
                                 val res = withContext(Dispatchers.IO) { ApiClient.post("/ai/chat", body) }
                                 emotion = res.optString("emotion", "IDLE")
                                 messages.add(res)
+                                tts.speak(speakable(res.optString("content")), TextToSpeech.QUEUE_FLUSH, null, res.optString("message_id", "sv"))
                             } catch (e: ApiException) {
                                 emotion = "WARNING"
                                 messages.add(JSONObject().put("role", "assistant")
@@ -174,6 +190,7 @@ private fun ChatBubble(
                     val label = when {
                         a.optString("status") == "succeeded" && a.optBoolean("verified") -> "✅ VERIFIED"
                         a.optString("status") == "succeeded" -> "⚠️ NOT PROVEN"
+                        a.optString("status") == "not_proven" -> "⚠️ NOT PROVEN"
                         a.optString("status") == "failed" -> "❌ FAILED"
                         a.optString("status") == "blocked" -> "⛔ BLOCKED"
                         else -> "⏳ PENDING"
@@ -192,3 +209,11 @@ private fun ChatBubble(
         }
     }
 }
+
+
+private fun speakable(text: String): String = text
+    .replace(Regex("https?://\\S+"), " ")
+    .replace("NOT PROVEN", "не подтверждено").replace("FAILED", "не выполнено").replace("VERIFIED", "подтверждено")
+    .replace(Regex("[*_#>|\\x60]"), " ")
+    .replace(Regex("[\\x{1F000}-\\x{1FFFF}\\x{2600}-\\x{27BF}\\uFE0F]"), " ")
+    .replace(Regex("\\s+"), " ").trim().take(3900)

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api.js';
 import { SvetlanaAvatar } from '../components/SvetlanaAvatar.jsx';
+import { svetlanaVoice } from '../lib/svetlanaVoice.js';
 
 const SUGGESTIONS = ['Что умеет Светлана?', 'Что такое «Мир Самозанятых»?', 'Как начать работать как самозанятый?', 'Где проверить правила по НПД?'];
 
@@ -15,11 +16,13 @@ export default function PublicSvetlanaChat() {
     if (!message || busy) return;
     const history = messages.slice(-10);
     setInput('');
+    svetlanaVoice.stop();
     setError('');
     setMessages((items) => [...items, { role: 'user', content: message }]);
     setBusy(true);
     try {
       const result = await api.post('/public/chat', { message, history });
+      svetlanaVoice.speak(result?.content || '');
       setMessages((items) => [...items, { role: 'assistant', content: result?.content || 'Не удалось получить ответ. Попробуйте ещё раз.' }]);
     } catch (err) {
       setError(err?.message || 'Светлана сейчас недоступна.');
@@ -33,7 +36,7 @@ export default function PublicSvetlanaChat() {
       <div className="site-container site-two-col">
         <div className="site-card">
           <div className="row" style={{ alignItems: 'center', gap: 12 }}>
-            <SvetlanaAvatar emotion={busy ? 'THINKING' : 'IDLE'} size={56} />
+            <SvetlanaAvatar live emotion={busy ? 'THINKING' : 'IDLE'} size={56} />
             <div><span className="site-eyebrow">Публичный чат</span><h2 style={{ margin: 0 }}>Светлана</h2></div>
           </div>
 

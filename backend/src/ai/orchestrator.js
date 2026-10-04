@@ -244,6 +244,7 @@ function actionSummary(actions) {
   for (const a of actions) {
     if (a.status === 'succeeded' && a.verified && a.message) lines.push(`✅ ${a.message}`);
     else if (a.status === 'succeeded' && !a.verified) lines.push(`⚠️ Действие выполнено, но я не смогла его подтвердить: ${a.message ?? a.tool}. Статус: NOT PROVEN.`);
+    else if (a.status === 'not_proven') lines.push('⚠️ Действие выполнено, но я не смогла его подтвердить. Статус: NOT PROVEN.');
     else if (a.status === 'failed') lines.push(`❌ ${a.message ?? 'Действие не выполнено'}. Статус: FAILED.`);
     else if (a.status === 'blocked') lines.push(a.needsApproval ? `🔐 ${a.message}` : `⛔ ${a.message ?? 'Действие заблокировано'}.`);
     else if (a.message) lines.push(a.message);

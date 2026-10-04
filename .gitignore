@@ -67,3 +67,4 @@ playwright-report/
 
 # OS
 Thumbs.db
+backend/vendor/
