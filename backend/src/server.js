@@ -46,6 +46,7 @@ import competitorRoutes from './routes/competitors.js';
 import notificationRoutes, { flushAllDueReminders } from './routes/notifications.js';
 import ragRoutes from './routes/rag.js';
 import aiRoutes from './routes/ai.js';
+import ttsRoutes from './routes/tts.js';
 import adminRoutes from './routes/admin.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -135,6 +136,7 @@ export async function buildServer() {
       api.register(notificationRoutes, { prefix: '/notifications' });
       api.register(ragRoutes, { prefix: '/rag' });
       api.register(aiRoutes, { prefix: '/ai' });
+      api.register(ttsRoutes, { prefix: '/tts' });
       api.register(adminRoutes, { prefix: '/admin' });
     },
     { prefix: '/api/v1' }

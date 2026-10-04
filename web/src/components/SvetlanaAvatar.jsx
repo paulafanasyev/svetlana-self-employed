@@ -1,57 +1,240 @@
-import { useState } from 'react';
+/**
+ * Светлана: единый говорящий аватар для всего приложения.
+ * Портрет берётся из svetlana-face.jpg; live-режим включает эмоции,
+ * моргание, движения головы и lip-sync по голосу.
+ */
+import { useEffect, useRef, useState } from 'react';
+import { svetlanaVoice } from '../lib/svetlanaVoice.js';
+import { loadFace, drawFace, createAnimator, toExpression } from '../lib/svetlanaFace.js';
 import './SvetlanaAvatar.css';
 
-const PHOTO = (import.meta.env.BASE_URL || '/') + 'svetlana-photo.jpg';
+const FACE = (import.meta.env?.BASE_URL || '/') + 'svetlana-face.jpg';
+let facePromise = null;
 
-function FallbackAvatar({ size }) {
+function getFace() {
+  if (!facePromise) {
+    facePromise = loadFace(FACE).catch((error) => {
+      facePromise = null;
+      throw error;
+    });
+  }
+  return facePromise;
+}
+
+function useLiveFace(canvasRef, size, enabled, expression, action, actionKey) {
+  const [failed, setFailed] = useState(false);
+  const animator = useRef(null);
+
+  if (!animator.current) animator.current = createAnimator();
+
+  useEffect(() => {
+    animator.current.setExpression(expression);
+  }, [expression]);
+
+  useEffect(() => {
+    if (action) animator.current.trigger(action);
+  }, [action, actionKey]);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+
+    let alive = true;
+    let raf = 0;
+    let face = null;
+    let voice = svetlanaVoice.state;
+    let speakingExpression = null;
+
+    const canvas = canvasRef.current;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext('2d');
+
+    const frame = (now) => {
+      raf = 0;
+      if (!alive || !face) return;
+
+      const nextExpression =
+        voice.speaking && voice.emotion && voice.emotion !== 'calm'
+          ? voice.emotion
+          : null;
+
+      if (nextExpression !== speakingExpression) {
+        speakingExpression = nextExpression;
+        animator.current.setExpression(nextExpression || expression);
+      }
+
+      drawFace(
+        ctx,
+        face,
+        canvas.width,
+        animator.current.frame(now, { open: voice.open, round: voice.round }),
+        now,
+      );
+
+      if (!document.hidden) raf = requestAnimationFrame(frame);
+    };
+
+    const kick = () => {
+      if (!raf && alive && !document.hidden) raf = requestAnimationFrame(frame);
+    };
+
+    const unsubscribe = svetlanaVoice.subscribe((state) => {
+      voice = state;
+      kick();
+    });
+
+    const onVisibility = () => {
+      if (!document.hidden) kick();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+
+    getFace()
+      .then((loadedFace) => {
+        if (!alive) return;
+        face = loadedFace;
+        kick();
+      })
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [canvasRef, size, enabled, expression]);
+
+  return failed;
+}
+
+function VoiceToggle() {
+  const [state, setState] = useState(svetlanaVoice.state);
+
+  useEffect(
+    () =>
+      svetlanaVoice.subscribe((next) =>
+        setState({
+          enabled: next.enabled,
+          supported: next.supported,
+          speaking: next.speaking,
+        }),
+      ),
+    [],
+  );
+
+  if (!state.supported) return null;
+
   return (
-    <svg viewBox="0 0 200 200" width={size} height={size} aria-hidden="true">
-      <defs>
-        <linearGradient id="svf-bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#eaf3ec" />
-          <stop offset="100%" stopColor="#d5e6d9" />
-        </linearGradient>
-        <linearGradient id="svf-hair" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#4a2a1f" />
-          <stop offset="100%" stopColor="#24140f" />
-        </linearGradient>
-        <linearGradient id="svf-skin" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#f8dcc7" />
-          <stop offset="100%" stopColor="#e7b894" />
-        </linearGradient>
-      </defs>
-      <circle cx="100" cy="100" r="100" fill="url(#svf-bg)" />
-      <path d="M34 190 Q39 135 100 132 Q161 135 166 190 L166 200 L34 200 Z" fill="#225b3c" />
-      <rect x="86" y="122" width="28" height="25" rx="12" fill="url(#svf-skin)" />
-      <path d="M37 95 Q31 44 100 30 Q169 44 163 95 Q166 143 146 159 L135 147 Q145 121 138 86 Q133 53 100 50 Q67 53 62 86 Q55 121 65 147 L53 159 Q34 141 37 95 Z" fill="url(#svf-hair)" />
-      <path d="M58 92 Q56 55 100 48 Q144 55 142 92 Q129 73 114 71 Q127 57 122 42 Q111 62 96 68 Q106 55 99 42 Q86 61 82 77 Q69 73 58 92 Z" fill="url(#svf-hair)" />
-      <path d="M100 51 Q134 54 139 91 Q139 126 118 143 Q100 152 82 143 Q61 126 61 91 Q66 54 100 51 Z" fill="url(#svf-skin)" />
-      <path d="M69 88 Q78 83 88 87" stroke="#4a2a1f" strokeWidth="3" strokeLinecap="round" />
-      <path d="M112 87 Q122 83 131 88" stroke="#4a2a1f" strokeWidth="3" strokeLinecap="round" />
-      <ellipse cx="82" cy="96" rx="11" ry="8" fill="#fff" />
-      <ellipse cx="118" cy="96" rx="11" ry="8" fill="#fff" />
-      <circle cx="82" cy="96" r="4.5" fill="#4a7fa1" />
-      <circle cx="118" cy="96" r="4.5" fill="#4a7fa1" />
-      <circle cx="83.2" cy="94.4" r="1.4" fill="#fff" />
-      <circle cx="119.2" cy="94.4" r="1.4" fill="#fff" />
-      <path d="M100 104 Q104 114 99 117 Q97 119 104 120" stroke="#c58d6b" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-      <path d="M87 130 Q100 140 113 130" stroke="#9e4b43" strokeWidth="3.2" fill="none" strokeLinecap="round" />
-    </svg>
+    <button
+      type="button"
+      className="sv-voice-toggle"
+      onClick={() =>
+        state.speaking
+          ? svetlanaVoice.stop()
+          : svetlanaVoice.setEnabled(!state.enabled)
+      }
+      aria-label={
+        state.speaking
+          ? 'Остановить речь'
+          : state.enabled
+            ? 'Выключить голос Светланы'
+            : 'Включить голос Светланы'
+      }
+      title={state.speaking ? 'Остановить' : state.enabled ? 'Голос включён' : 'Голос выключен'}
+    >
+      {state.speaking ? '■' : state.enabled ? '🔊' : '🔇'}
+    </button>
   );
 }
 
-export function SvetlanaAvatar({ emotion = 'IDLE', size = 44, thinking = false, className = '' }) {
-  const [failed, setFailed] = useState(false);
+function useSpeaking(enabled) {
+  const [speaking, setSpeaking] = useState(false);
+
+  useEffect(
+    () =>
+      enabled
+        ? svetlanaVoice.subscribe((state) => setSpeaking(state.speaking))
+        : undefined,
+    [enabled],
+  );
+
+  return speaking;
+}
+
+export function SvetlanaAvatar({
+  emotion = 'IDLE',
+  size = 44,
+  thinking = false,
+  className = '',
+  live,
+  voiceControls = true,
+  action = null,
+  actionKey = 0,
+  fullHead = false,
+}) {
+  // Live is now the default everywhere. Pass live={false} only for an explicit
+  // static image use-case.
+  const isLive = live ?? true;
+  const canvasRef = useRef(null);
+  const [imageFailed, setImageFailed] = useState(false);
+  const expression = thinking ? 'thinking' : toExpression(emotion);
+  const liveFailed = useLiveFace(
+    canvasRef,
+    size,
+    isLive,
+    expression,
+    action,
+    actionKey,
+  );
+  const speaking = useSpeaking(isLive);
   const state = String(emotion || 'IDLE').toLowerCase();
+  const failed = isLive ? liveFailed : imageFailed;
+
+  const classNames = [
+    'sv-photo-avatar',
+    `sv-photo-${state}`,
+    thinking && 'sv-photo-thinking',
+    isLive && 'sv-live',
+    speaking && 'sv-speaking',
+    fullHead && 'sv-full-head',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <span
-      className={'sv-photo-avatar sv-photo-' + state + (thinking ? ' sv-photo-thinking' : '') + (failed ? ' is-fallback' : '') + ' ' + className}
+      className={classNames}
       style={{ width: size, height: size }}
       role="img"
-      aria-label={'Светлана — ' + emotion}
+      aria-label={speaking ? 'Светлана говорит' : 'Светлана'}
     >
-      {failed ? <FallbackAvatar size={size} /> : <img src={PHOTO} alt="" draggable="false" onError={() => setFailed(true)} />}
-      <span className="sv-photo-status" aria-hidden="true" />
+      {failed ? (
+        <span
+          className="sv-photo-fallback"
+          style={{ fontSize: Math.round(size * 0.42) }}
+        >
+          С
+        </span>
+      ) : isLive ? (
+        <canvas ref={canvasRef} className="sv-face-canvas" aria-hidden="true" />
+      ) : (
+        <img
+          src={FACE}
+          alt=""
+          draggable="false"
+          onError={() => setImageFailed(true)}
+        />
+      )}
+
+      <span className="sv-photo-status" />
+      {isLive && voiceControls && <VoiceToggle />}
     </span>
   );
 }
+
+export default SvetlanaAvatar;

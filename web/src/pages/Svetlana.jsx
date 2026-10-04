@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';import { ai } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { SvetlanaAvatar } from '../components/SvetlanaAvatar.jsx';
+import { svetlanaVoice } from '../lib/svetlanaVoice.js';
 import { fmtDate } from '../ui.jsx';
 
 const EMOTION_CLASS = {
@@ -33,6 +34,7 @@ function ActionEvidence({ action, onApprove, approving }) {
   const label = action.status === 'succeeded' && action.verified ? 'VERIFIED'
     : action.status === 'succeeded' ? 'NOT PROVEN'
     : action.status === 'failed' ? 'FAILED'
+    : action.status === 'not_proven' ? 'NOT PROVEN'
     : action.status === 'blocked' ? 'BLOCKED' : 'PENDING';
   return (
     <div className="action-pill">
@@ -88,6 +90,7 @@ export default function SvetlanaPage() {
     if (!message || busy) return;
     setError(null);
     setInput('');
+    svetlanaVoice.stop();
     setBusy(true);
     setEmotion('THINKING');
     setMessages((m) => [...m, { role: 'user', content: message }]);
@@ -95,6 +98,7 @@ export default function SvetlanaPage() {
       const res = await ai.chat({ message, conversation_id: conversationId });
       if (!conversationId && res.conversation_id) setConversationId(res.conversation_id);
       setEmotion(res.emotion ?? 'IDLE');
+      svetlanaVoice.speak(res.content || '');
       setMessages((m) => [...m, {
         role: 'assistant',
         content: res.content,
@@ -130,6 +134,7 @@ export default function SvetlanaPage() {
         content: result.message || (result.verified ? 'Действие подтверждено и выполнено.' : 'Действие выполнено, но его нельзя подтвердить как VERIFIED.'),
         actions: [result],
       }]);
+      svetlanaVoice.speak(result.message || (result.verified ? 'Действие подтверждено и выполнено.' : 'Действие выполнено, но не подтверждено.'));
       setEmotion(result.status === 'succeeded' && result.verified ? 'SUCCESS' : result.status === 'failed' ? 'WARNING' : 'CONCERNED');
     } catch (err) {
       setError(err.message ?? 'Не удалось выполнить подтверждённое действие');
@@ -213,12 +218,12 @@ export default function SvetlanaPage() {
 
       <div className="stack">
         <div className="card" style={{ textAlign: 'center' }}>
-          <div className="avatar-wrap" style={{ margin: '0 auto', width: 128, height: 128 }}>
-            <SvetlanaAvatar emotion={emotion} size={128} />
+          <div className="sv-svetlana-hero-avatar">
+            <SvetlanaAvatar live fullHead emotion={emotion} size={360} />
             <span className={`emotion-ring ${ringClass}`} />
           </div>
-          <h3 style={{ marginTop: 12 }}>Светлана</h3>
-          <p className="muted small">Эмоция связана с результатом действий, а не случайна</p>
+          <h2 style={{ marginTop: 14, marginBottom: 6 }}>Светлана</h2>
+          <p className="muted small">Целиком говорящая голова из архива: голос, липсинк и эмоции работают непосредственно на этой странице.</p>
         </div>
 
         <div className="card">

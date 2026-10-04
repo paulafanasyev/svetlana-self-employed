@@ -32,7 +32,7 @@ export default async function aiRoutes(fastify) {
         userId: request.user.id,
         message: body.message,
         conversationId: body.conversation_id,
-        approvedTool: body.approved_tool,
+        approvedTool: null,
         turnId: nanoid(),
       });
       return reply.send(out);
