@@ -15,6 +15,7 @@ import {
   crmStore, CONTACT_STATUSES, DEAL_STAGES, STAGE_LABELS, ACTIVITY_TYPES, PAYERS,
   NPD_YEAR_LIMIT, LIMITS, money,
 } from '../crm/crmStore.js';
+import { useAuth } from '../auth.jsx';
 import { parseCommand, runCommand } from '../crm/crmCommands.js';
 import { Icon } from '../crm/icons.jsx';
 import '../crm/crm.css';
@@ -31,7 +32,8 @@ const ru = (ts, withTime = false) => (ts ? new Date(ts).toLocaleString('ru-RU', 
 const today = () => new Date().toISOString().slice(0, 10);
 
 function useCrm() {
-  const store = crmStore();
+  const { user } = useAuth();
+  const store = crmStore(user?.id ?? user?.email ?? 'guest');
   useSyncExternalStore(store.subscribe, () => store.revision);
   return store;
 }
@@ -61,15 +63,38 @@ function download(name, text, type) {
 
 function ConfirmDialog({ cmd, source, onCancel, onConfirm }) {
   const cancelRef = useRef(null);
+  const boxRef = useRef(null);
   useEffect(() => {
+    const prev = document.activeElement;
+    // Всё, кроме диалога, делаем недоступным: соседи каждого предка вплоть до <body>.
+    const hidden = [];
+    for (let node = boxRef.current?.parentElement; node && node !== document.body; node = node.parentElement) {
+      const parent = node.parentElement;
+      if (!parent) break;
+      for (const sib of parent.children) if (sib !== node && !sib.hasAttribute('inert')) hidden.push(sib);
+    }
+    hidden.forEach((el) => el.setAttribute('inert', ''));
     cancelRef.current?.focus();
-    const onKey = (e) => { if (e.key === 'Escape') onCancel(); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCancel(); return; }
+      if (e.key !== 'Tab' || !boxRef.current) return;
+      const items = boxRef.current.querySelectorAll('button:not([disabled]), [href], input, [tabindex]:not([tabindex="-1"])');
+      if (!items.length) return;
+      const first = items[0]; const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      else if (!boxRef.current.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      hidden.forEach((el) => el.removeAttribute('inert'));
+      if (prev && typeof prev.focus === 'function' && document.contains(prev)) prev.focus();
+    };
   }, [onCancel]);
   return (
     <div className="crm-modal-backdrop">
-      <div className="crm-modal" role="alertdialog" aria-modal="true" aria-labelledby="crm-confirm-title" aria-describedby="crm-confirm-desc">
+      <div ref={boxRef} className="crm-modal" role="alertdialog" aria-modal="true" aria-labelledby="crm-confirm-title" aria-describedby="crm-confirm-desc">
         <span className="crm-pill">{source === 'voice' ? 'Распознано голосом' : 'Предложено Светланой'}</span>
         <h3 id="crm-confirm-title">{cmd.title}</h3>
         <dl className="crm-dl">

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCrmStore, STORAGE_KEY, phoneKey, csvSafe, parseCsv, NPD_YEAR_LIMIT } from '../src/crm/crmStore.js';
+import { createCrmStore, STORAGE_KEY, phoneKey, csvSafe, parseCsv, NPD_YEAR_LIMIT, storageKeyFor, plural } from '../src/crm/crmStore.js';
 
 function mem(initial) {
   const m = new Map(initial ? [[STORAGE_KEY, JSON.stringify(initial)]] : []);
@@ -61,7 +61,7 @@ test('сводка: воронка, конверсия, НПД 4%/6%, лимит
   assert.equal(st.npdEstimate, 4000 + 6000);
   assert.equal(st.receiptsMissing, 1);
   assert.equal(st.npdLimitShare, 200000 / NPD_YEAR_LIMIT);
-  assert.match(s.summaryText(), /чеки по 1/);
+  assert.match(s.summaryText(), /оплаченным сделкам: 1/);
 });
 
 test('задачи: просрочка и выполнение', () => {
@@ -107,4 +107,32 @@ test('CSV: экспорт без формул, импорт с объедине�
   const csv = s.exportCSV();
   assert.ok(csv.startsWith('\uFEFFИмя,Телефоны'));
   assert.throws(() => s.importCSV('Телефон\n123'), /нет колонки «Имя»/);
+});
+
+test('данные разных пользователей не смешиваются', () => {
+  const storage = new Map();
+  const st = { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v), removeItem: (k) => storage.delete(k) };
+  const a = createCrmStore({ storage: st, key: storageKeyFor('user-a') });
+  a.addContact({ name: 'Анна' });
+  const b = createCrmStore({ storage: st, key: storageKeyFor('user-b') });
+  assert.equal(b.listContacts().length, 0);
+  const a2 = createCrmStore({ storage: st, key: storageKeyFor('user-a') });
+  assert.equal(a2.listContacts().length, 1);
+});
+
+test('склонение в сводке', () => {
+  assert.equal(plural(1, ['контакт', 'контакта', 'контактов']), 'контакт');
+  assert.equal(plural(3, ['контакт', 'контакта', 'контактов']), 'контакта');
+  assert.equal(plural(11, ['контакт', 'контакта', 'контактов']), 'контактов');
+  assert.equal(plural(21, ['контакт', 'контакта', 'контактов']), 'контакт');
+});
+
+test('редактирование не создаёт дубль по телефону', () => {
+  const m = new Map();
+  const st = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v), removeItem: (k) => m.delete(k) };
+  const s = createCrmStore({ storage: st });
+  s.addContact({ name: 'Анна', phones: ['+7 900 111-22-33'] });
+  const b = s.addContact({ name: 'Борис', phones: ['+7 900 999-88-77'] });
+  assert.throws(() => s.updateContact(b.id, { phones: ['8 (900) 111-22-33'] }), /уже есть у «Анна»/);
+  assert.equal(s.updateContact(b.id, { name: 'Борис П.' }).name, 'Борис П.');
 });
