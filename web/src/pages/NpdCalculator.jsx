@@ -46,27 +46,28 @@ export default function NpdCalculator() {
             </form>
 
             <section className="mh-card npd-result" aria-live="polite" aria-label="Результат">
-              <span className="npd-cap">Налог к уплате</span>
+              <span className="npd-cap">{r.excess > 0 ? 'НПД к уплате (в пределах лимита)' : 'Налог к уплате'}</span>
               <strong className="npd-big">{fmt(r.tax)}</strong>
               <dl className="mh-req">
                 <div><dt>Доход</dt><dd>{fmt(r.income)}</dd></div>
+                {r.excess > 0 && <div><dt>Сверх лимита</dt><dd>{fmt(r.excess)} — НПД не применяется</dd></div>}
                 <div><dt>Без вычета</dt><dd>{fmt(r.taxFull)}</dd></div>
                 <div><dt>Вычет</dt><dd>−{fmt(r.deductionUsed)} (останется {fmt(r.deductionLeft)})</dd></div>
-                <div><dt>На руки</dt><dd>{fmt(r.net)}</dd></div>
+                <div><dt>{r.excess > 0 ? 'На руки (в пределах лимита)' : 'На руки'}</dt><dd>{fmt(r.net)}</dd></div>
                 <div><dt>Ставка</dt><dd>{(r.effectiveRate * 100).toFixed(2).replace('.', ',')}%</dd></div>
               </dl>
               <div className="npd-limit">
                 <div className="npd-bar"><i style={{ width: share * 100 + '%' }} className={r.nearLimit ? 'is-warn' : ''} /></div>
                 <small>Доход за год: {fmt(r.yearTotal)} из {fmt(NPD.yearLimit)}. До лимита: {fmt(r.limitLeft)}.</small>
               </div>
-              {r.overLimit && <p className="npd-alert" role="alert">Лимит НПД превышен: с дохода сверх 2,4 млн ₽ НПД не применяется, статус самозанятого будет утрачен. В течение 20 дней можно перейти на УСН или другой режим — лучше выбрать его заранее.</p>}
+              {r.overLimit && <p className="npd-alert" role="alert">Лимит НПД превышен. Калькулятор считает НПД только с дохода в пределах 2,4 млн ₽ и не рассчитывает налог после утраты права на НПД. Если доход шёл и от физлиц, и от компаний, точную сумму определит «Мой налог» по датам чеков. ИП может в течение 20 дней перейти на УСН; условия для вашего случая уточните на сайте ФНС.</p>}
               {!r.overLimit && r.nearLimit && <p className="npd-alert npd-alert-soft" role="status">До лимита НПД осталось меньше 10%. Спланируйте, что делать, если доход превысит 2,4 млн ₽.</p>}
             </section>
           </div>
 
           <div className="mh-steps npd-steps">
             <div className="mh-card"><span className="mh-step-n">1</span><h3>Получили оплату</h3><p>Сразу сформируйте чек в «Мой налог». От компаний при безналичной оплате — не позднее 9 числа следующего месяца.</p></div>
-            <div className="mh-card"><span className="mh-step-n">2</span><h3>До 12 числа</h3><p>ФНС присылает в «Мой налог» сумму налога за прошлый месяц. Если меньше 100 ₽ — переносится на следующий месяц.</p></div>
+            <div className="mh-card"><span className="mh-step-n">2</span><h3>До 12 числа</h3><p>ФНС присылает в «Мой налог» сумму налога за прошлый месяц. Если сумма не превышает 100 ₽, она переносится на следующий месяц.</p></div>
             <div className="mh-card"><span className="mh-step-n">3</span><h3>До 28 числа</h3><p>Оплатите налог в приложении или подключите автоплатёж в банке.</p></div>
           </div>
           <p className="mh-note">Расчёт ориентировочный. Точная сумма — в приложении <a href="https://lknpd.nalog.ru/" target="_blank" rel="noopener noreferrer">«Мой налог»</a>. Источник ставок и лимита: <a href="https://www.nalog.gov.ru/rn77/npd/" target="_blank" rel="noopener noreferrer">ФНС России</a>, 422-ФЗ.</p>

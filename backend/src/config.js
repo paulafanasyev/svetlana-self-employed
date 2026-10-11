@@ -51,7 +51,9 @@ if (isServerless) {
   const tmp = tmpdir();
   if (!process.env.DB_PATH) { process.env.DB_PATH = resolve(tmp, 'mir-app.sqlite'); ephemeral.storage = true; }
   if (!process.env.STORAGE_DIR) { process.env.STORAGE_DIR = resolve(tmp, 'mir-storage'); ephemeral.storage = true; }
-  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  // Генерируем секрет только если он не задан вовсе. Заданный, но слабый секрет
+  // не подменяем молча — конфигурация упадёт с понятной ошибкой.
+  if (!process.env.JWT_SECRET) {
     process.env.JWT_SECRET = randomBytes(48).toString('hex');
     ephemeral.secret = true;
     console.warn('⚠️  JWT_SECRET is not set: generated a per-instance secret (temporary demo mode). Set JWT_SECRET in Vercel → Settings → Environment Variables.');

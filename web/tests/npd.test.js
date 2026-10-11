@@ -31,3 +31,17 @@ test('Светлана спрашивает имя: нормализация и 
   assert.match(greetingFor('Ольга'), /^Очень приятно, Ольга!/);
   assert.doesNotMatch(greetingFor(''), /Павел|undefined/);
 });
+
+test('НПД считается только с дохода в пределах лимита 2,4 млн', () => {
+  const r = calcNpd({ person: 300000, deductionLeft: 0, yearIncomeBefore: 2200000 });
+  assert.equal(r.taxableNpd, 200000);
+  assert.equal(r.excess, 100000);
+  assert.equal(r.tax, 8000);
+  assert.equal(r.overLimit, true);
+});
+
+test('если лимит уже исчерпан, НПД к уплате 0', () => {
+  const r = calcNpd({ business: 50000, deductionLeft: 0, yearIncomeBefore: 2400000 });
+  assert.equal(r.tax, 0);
+  assert.equal(r.excess, 50000);
+});

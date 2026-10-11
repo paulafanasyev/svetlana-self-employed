@@ -18,10 +18,15 @@ const r2 = (n) => Math.round(n * 100) / 100;
  * @param {{person?:number,business?:number,deductionLeft?:number,yearIncomeBefore?:number}} input
  */
 export function calcNpd({ person = 0, business = 0, deductionLeft = NPD.deductionTotal, yearIncomeBefore = 0 } = {}) {
-  const p = Math.max(0, Number(person) || 0);
-  const b = Math.max(0, Number(business) || 0);
-  const left0 = Math.min(NPD.deductionTotal, Math.max(0, Number(deductionLeft) || 0));
+  const p0 = Math.max(0, Number(person) || 0);
+  const b0 = Math.max(0, Number(business) || 0);
   const before = Math.max(0, Number(yearIncomeBefore) || 0);
+  // НПД применяется только к доходу в пределах лимита года; превышение облагается по другому режиму.
+  const room = Math.max(0, NPD.yearLimit - before);
+  const k = p0 + b0 > room ? (p0 + b0 ? room / (p0 + b0) : 0) : 1;
+  const p = p0 * k;
+  const b = b0 * k;
+  const left0 = Math.min(NPD.deductionTotal, Math.max(0, Number(deductionLeft) || 0));
 
   const taxPerson = p * NPD.rate.person;
   const taxBusiness = b * NPD.rate.business;
@@ -31,16 +36,20 @@ export function calcNpd({ person = 0, business = 0, deductionLeft = NPD.deductio
   const dedBusiness = Math.min(left, b * NPD.deductionRate.business);
   left -= dedBusiness;
 
-  const income = p + b;
+  const income = p0 + b0;
+  const taxable = p + b;
   const yearTotal = before + income;
+  const tax = taxPerson + taxBusiness - dedPerson - dedBusiness;
   return {
     income: r2(income),
+    taxableNpd: r2(taxable),
+    excess: r2(income - taxable),
     taxFull: r2(taxPerson + taxBusiness),
     deductionUsed: r2(dedPerson + dedBusiness),
     deductionLeft: r2(left),
-    tax: r2(taxPerson + taxBusiness - dedPerson - dedBusiness),
-    net: r2(income - (taxPerson + taxBusiness - dedPerson - dedBusiness)),
-    effectiveRate: income ? (taxPerson + taxBusiness - dedPerson - dedBusiness) / income : 0,
+    tax: r2(tax),
+    net: r2(taxable - tax),
+    effectiveRate: taxable ? tax / taxable : 0,
     yearTotal: r2(yearTotal),
     limitLeft: r2(Math.max(0, NPD.yearLimit - yearTotal)),
     overLimit: yearTotal > NPD.yearLimit,
