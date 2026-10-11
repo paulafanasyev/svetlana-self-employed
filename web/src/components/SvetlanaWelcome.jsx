@@ -21,6 +21,7 @@ import './SvetlanaWelcome.css';
 export { INTRO_TEXT, greetingFor, normalizeName, getVisitorName, openSvetlanaChat };
 export { openSvetlanaWelcome } from './welcomeText.js';
 
+
 export default function SvetlanaWelcome({ delay = 900, knownName = '' }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState('ask'); // ask | hello
@@ -37,9 +38,11 @@ export default function SvetlanaWelcome({ delay = 900, knownName = '' }) {
 
   const show = useCallback(() => {
     lastFocus.current = document.activeElement;
-    const remembered = knownName || getVisitorName();
+    // Имя, которое посетитель сам назвал Светлане, — сразу «привет».
+    // Имя из профиля только подставляем в поле: человек подтверждает, как к нему обращаться.
+    const remembered = getVisitorName();
     setName(remembered);
-    setInput(remembered);
+    setInput(remembered || knownName);
     setError('');
     setStep(remembered ? 'hello' : 'ask');
     setOpen(true);
@@ -70,6 +73,18 @@ export default function SvetlanaWelcome({ delay = 900, knownName = '' }) {
     const back = lastFocus.current;
     if (back && typeof back.focus === 'function') window.setTimeout(() => back.focus(), 0);
   }, []);
+
+  useEffect(() => {
+    if (!open || !dialogRef.current) return undefined;
+    const hidden = [];
+    for (let node = dialogRef.current.parentElement; node && node !== document.body; node = node.parentElement) {
+      const parent = node.parentElement;
+      if (!parent) break;
+      for (const sib of parent.children) if (sib !== node && !sib.hasAttribute('inert')) hidden.push(sib);
+    }
+    hidden.forEach((el) => el.setAttribute('inert', ''));
+    return () => hidden.forEach((el) => el.removeAttribute('inert'));
+  }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -166,7 +181,7 @@ export default function SvetlanaWelcome({ delay = 900, knownName = '' }) {
               <button type="button" className="svw-btn svw-btn-ghost" onClick={() => setStep('ask')}>{name ? 'Я не ' + name : 'Представиться'}</button>
             </div>
           )}
-          <p className="svw-fine">Имя хранится только в вашем браузере. Светлана — цифровая помощница и не заменяет консультацию ФНС: важное проверяем по официальным источникам.</p>
+          <p className="svw-fine">Имя хранится только в вашем браузере и не отправляется на сервер. Светлана — цифровая помощница и не заменяет консультацию ФНС: важное проверяем по официальным источникам.</p>
         </div>
       </section>
     </div>

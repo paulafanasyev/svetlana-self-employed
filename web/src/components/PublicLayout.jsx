@@ -57,6 +57,7 @@ function PublicChat() {
   const [messages, setMessages] = useState(() => [{ from: 'ai', text: hello(getVisitorName()) }]);
   const bodyRef = useRef(null);
   const inputRef = useRef(null);
+  const fabRef = useRef(null);
 
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -85,8 +86,7 @@ function PublicChat() {
     setBusy(true);
     let answer = '';
     try {
-      const name = getVisitorName();
-      const result = await api.post('/public/chat', { message: (name ? `[Меня зовут ${name}] ` : '') + text.slice(0, 3900), history });
+      const result = await api.post('/public/chat', { message: text.slice(0, 3900), history });
       answer = String(result?.content || '').trim();
     } catch { /* сервер недоступен — отвечаем проверенной справкой */ }
     if (!answer) answer = answerFor(text);
@@ -98,11 +98,11 @@ function PublicChat() {
   return (
     <>
       {open && (
-        <section className="site-chat" role="dialog" aria-label="Чат со Светланой">
+        <section className="site-chat" role="dialog" aria-label="Чат со Светланой" onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); fabRef.current?.focus(); } }}>
           <div className="site-chat-head">
             <SvetlanaAvatar emotion={busy ? 'THINKING' : 'HAPPY'} size={42} />
             <div><strong>Светлана</strong><span>помощница «Мира Самозанятых»</span></div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Закрыть чат">×</button>
+            <button type="button" onClick={() => { setOpen(false); fabRef.current?.focus(); }} aria-label="Закрыть чат">×</button>
           </div>
           <div className="site-chat-body" ref={bodyRef} role="log" aria-live="polite">
             {messages.map((message, index) => (
@@ -113,13 +113,14 @@ function PublicChat() {
           <div className="site-chat-quick">
             {QUICK.map((q) => <button key={q} type="button" onClick={() => send(q)} disabled={busy}>{q}</button>)}
           </div>
+          <p className="site-chat-note">Не пишите в чат паспортные данные и пароли: сообщения обрабатываются на сервере Светланы.</p>
           <form className="site-chat-compose" onSubmit={(event) => { event.preventDefault(); send(input); }}>
             <input ref={inputRef} value={input} onChange={(event) => setInput(event.target.value)} placeholder="Спросите Светлану…" aria-label="Сообщение Светлане" maxLength={3900} />
             <button type="submit" disabled={busy || !input.trim()} aria-label="Отправить">→</button>
           </form>
         </section>
       )}
-      <button className="site-chat-fab" type="button" onClick={() => setOpen((value) => !value)} aria-label={open ? 'Закрыть чат со Светланой' : 'Открыть чат со Светланой'} aria-expanded={open}>
+      <button ref={fabRef} className="site-chat-fab" type="button" onClick={() => setOpen((value) => !value)} aria-label={open ? 'Закрыть чат со Светланой' : 'Открыть чат со Светланой'} aria-expanded={open}>
         <SvetlanaAvatar emotion={open ? 'THINKING' : 'HAPPY'} size={58} voiceControls={false} />
       </button>
     </>
@@ -183,7 +184,7 @@ export default function PublicLayout({ children }) {
           <div><h4>АНО ЦПС «Мир Самозанятых»</h4><Link to="/organization">О центре и реквизиты</Link><Link to="/cooperation">Сотрудничество</Link><Link to="/support">Поддержка</Link><Link to="/faq">Вопросы и ответы</Link><Link to="/privacy">Конфиденциальность</Link><Link to="/terms">Соглашение</Link><Link to="/cookies">Cookie</Link><a href="tel:+79199991336">+7 (919) 999-13-36</a><a href="mailto:mir.samozanyatyh@yandex.ru">mir.samozanyatyh@yandex.ru</a><CookieSettingsButton /></div>
         </div>
         <div className="site-container site-footer-bottom">
-          <span>© {new Date().getFullYear()} АНО «Центр поддержки самозанятых «Мир Самозанятых» · ИНН 9724016805 · ОГРН 1207700247864</span>
+          <span>© {new Date().getFullYear()} АНО «Центр поддержки самозанятых „Мир Самозанятых“» · ИНН 9724016805 · ОГРН 1207700247864</span>
           <span>Сайт и приложение для Android</span>
         </div>
       </footer>

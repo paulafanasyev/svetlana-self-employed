@@ -2,3 +2,4 @@
 .site-skip:focus{top:12px;outline:3px solid #f2b705}
 .site-main:focus{outline:none}
 .site-chat-compose button:disabled,.site-chat-quick button:disabled{opacity:.5;cursor:not-allowed}
+.site-chat-note{margin:0;padding:6px 12px;font-size:12px;line-height:1.4;opacity:.8}
