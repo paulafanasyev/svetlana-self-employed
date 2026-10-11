@@ -1,7 +1,7 @@
 /**
  * Светлана: единый говорящий аватар для всего приложения.
  * Портрет берётся из svetlana-face.jpg; live-режим включает эмоции,
- * моргание, движения головы и lip-sync по голосу.
+ * моргание, движения головы и синхронизацию губ с голосом.
  */
 import { useEffect, useRef, useState } from 'react';
 import { svetlanaVoice } from '../lib/svetlanaVoice.js';
@@ -45,6 +45,7 @@ function useLiveFace(canvasRef, size, enabled, expression, action, actionKey) {
     let speakingExpression = null;
 
     const canvas = canvasRef.current;
+    if (!canvas) return undefined;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
@@ -176,7 +177,7 @@ export function SvetlanaAvatar({
   actionKey = 0,
   fullHead = false,
 }) {
-  // Live is now the default everywhere. Pass live={false} only for an explicit
+  // Live is the default everywhere. Pass live={false} only for an explicit
   // static image use-case.
   const isLive = live ?? true;
   const canvasRef = useRef(null);
@@ -193,6 +194,7 @@ export function SvetlanaAvatar({
   const speaking = useSpeaking(isLive);
   const state = String(emotion || 'IDLE').toLowerCase();
   const failed = isLive ? liveFailed : imageFailed;
+  const label = speaking ? 'Светлана говорит' : 'Светлана';
 
   const classNames = [
     'sv-photo-avatar',
@@ -206,32 +208,32 @@ export function SvetlanaAvatar({
     .filter(Boolean)
     .join(' ');
 
+  // role="img" lives on the picture itself, not on the wrapper: the wrapper
+  // may contain the voice button, and interactive content inside role="img"
+  // is hidden from screen readers (axe: nested-interactive).
   return (
-    <span
-      className={classNames}
-      style={{ width: size, height: size }}
-      role="img"
-      aria-label={speaking ? 'Светлана говорит' : 'Светлана'}
-    >
+    <span className={classNames} style={{ width: size, height: size }}>
       {failed ? (
         <span
           className="sv-photo-fallback"
           style={{ fontSize: Math.round(size * 0.42) }}
+          role="img"
+          aria-label={label}
         >
           С
         </span>
       ) : isLive ? (
-        <canvas ref={canvasRef} className="sv-face-canvas" aria-hidden="true" />
+        <canvas ref={canvasRef} className="sv-face-canvas" role="img" aria-label={label} />
       ) : (
         <img
           src={FACE}
-          alt=""
+          alt={label}
           draggable="false"
           onError={() => setImageFailed(true)}
         />
       )}
 
-      <span className="sv-photo-status" />
+      <span className="sv-photo-status" aria-hidden="true" />
       {isLive && voiceControls && <VoiceToggle />}
     </span>
   );
