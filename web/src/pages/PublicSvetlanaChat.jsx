@@ -34,7 +34,7 @@ export default function PublicSvetlanaChat() {
     setBusy(true);
     let content = '';
     try {
-      const result = await api.post('/public/chat', { message: (name ? `[Меня зовут ${name}] ` : '') + message.slice(0, 3900), history });
+      const result = await api.post('/public/chat', { message: message.slice(0, 3900), history });
       content = String(result?.content || '').trim();
     } catch { /* сервер недоступен — отвечаем проверенной справкой */ }
     if (!content) content = answerFor(message);
@@ -80,7 +80,7 @@ export default function PublicSvetlanaChat() {
               <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Напишите вопрос Светлане…" disabled={busy} aria-label="Сообщение Светлане" maxLength={3900} />
               <button className="site-btn site-btn-primary" onClick={() => send()} disabled={busy || !input.trim()}>Отправить</button>
             </div>
-            <p className="small muted" style={{ marginTop: 10 }}>В этом чате у Светланы нет доступа к вашему кабинету и данным.</p>
+            <p className="small muted" style={{ marginTop: 10 }}>В этом чате у Светланы нет доступа к вашему кабинету. Сообщения обрабатываются на сервере — не пишите паспортные данные и пароли.</p>
           </div>
 
           <div className="site-card">
