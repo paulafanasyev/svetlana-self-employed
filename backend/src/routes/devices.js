@@ -23,6 +23,19 @@ import { MODEL_CATALOG } from '../lib/modelCatalog.js';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_TTL_S = 10 * 60;
 const MAX_DEVICES = 10;
+const STALE_S = 90 * 24 * 3600; // устройство, молчавшее 90 дней, отключается автоматически
+const CATALOG_IDS = new Set(MODEL_CATALOG.models.map((m) => m.id));
+// Глобальный предохранитель от распределённого перебора кодов (много IP): не больше N неудач в минуту.
+const LINK_FAIL_WINDOW_MS = 60_000;
+const LINK_FAIL_MAX = 100;
+let linkFails = [];
+function linkFailuresExceeded() {
+  const t = Date.now();
+  linkFails = linkFails.filter((x) => t - x < LINK_FAIL_WINDOW_MS);
+  return linkFails.length >= LINK_FAIL_MAX;
+}
+// Только печатные символы: без управляющих, bidi и переводов строки.
+const SAFE_NAME = /^[^\x00-\x1f\x7f-\x9f\u200e\u200f\u202a-\u202e\u2066-\u2069]+$/u;
 
 const sha256 = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 const normalizeCode = (raw) => String(raw ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -37,12 +50,12 @@ function newCode() {
 const linkSchema = z.object({
   code: z.string().min(12).max(20),
   platform: z.enum(['windows', 'android']),
-  name: z.string().min(1).max(80),
+  name: z.string().trim().min(1).max(80).regex(SAFE_NAME),
   app_version: z.string().max(40).optional(),
 }).strict();
 
 const modelSchema = z.object({
-  id: z.string().regex(/^[A-Za-z0-9._-]{1,60}$/),
+  id: z.string().regex(/^[A-Za-z0-9._-]{1,60}$/).refine((id) => CATALOG_IDS.has(id), 'unknown model'),
   size_mb: z.number().int().min(0).max(200_000).optional(),
 }).strict();
 
@@ -100,6 +113,11 @@ export default async function deviceRoutes(fastify) {
       return reply.code(409).send({ error: 'too_many_devices', message: `Не больше ${MAX_DEVICES} устройств. Отключите ненужные.` });
     }
     db().prepare('DELETE FROM device_link_codes WHERE user_id = ? AND (expires_at < ? OR used_at IS NOT NULL)').run(request.user.id, now());
+    db().prepare('DELETE FROM device_link_codes WHERE expires_at < ?').run(now() - 86_400);
+    const pending = db().prepare('SELECT COUNT(*) AS n FROM device_link_codes WHERE user_id = ? AND used_at IS NULL AND expires_at >= ?').get(request.user.id, now()).n;
+    if (pending >= 3) {
+      return reply.code(429).send({ error: 'too_many_codes', message: 'Уже есть действующие коды. Используйте их или подождите 10 минут.' });
+    }
     const code = newCode();
     const expires_at = now() + CODE_TTL_S;
     db().prepare('INSERT INTO device_link_codes (code_hash, user_id, expires_at) VALUES (?, ?, ?)')
@@ -109,6 +127,9 @@ export default async function deviceRoutes(fastify) {
   });
 
   fastify.post('/link', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    if (linkFailuresExceeded()) {
+      return reply.code(429).send({ error: 'busy', message: 'Слишком много попыток. Повторите через минуту.' });
+    }
     const body = validateOrThrow(linkSchema, request.body, reply);
     if (!body) return;
     const hash = sha256(normalizeCode(body.code));
@@ -120,6 +141,8 @@ export default async function deviceRoutes(fastify) {
         .prepare('SELECT * FROM device_link_codes WHERE code_hash = ? AND used_at IS NULL AND expires_at >= ?')
         .get(hash, now());
       if (!row) return;
+      const active = db().prepare('SELECT COUNT(*) AS n FROM devices WHERE user_id = ? AND revoked_at IS NULL').get(row.user_id).n;
+      if (active >= MAX_DEVICES) return;
       db().prepare('UPDATE device_link_codes SET used_at = ? WHERE code_hash = ?').run(now(), hash);
       db().prepare(`INSERT INTO devices (id, user_id, platform, name, app_version, token_hash, last_seen_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)`)
@@ -127,13 +150,18 @@ export default async function deviceRoutes(fastify) {
       userId = row.user_id;
     });
     if (!userId) {
+      linkFails.push(Date.now());
       return reply.code(401).send({ error: 'invalid_code', message: 'Код неверный или устарел. Получите новый в личном кабинете.' });
     }
     reply.send({ device_id: id, device_token: token });
   });
 
   fastify.post('/heartbeat', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (request, reply) => {
-    const device = deviceFromToken(request);
+    let device = deviceFromToken(request);
+    if (device && device.last_seen_at && now() - device.last_seen_at > STALE_S) {
+      db().prepare('UPDATE devices SET revoked_at = ? WHERE id = ?').run(now(), device.id);
+      device = null;
+    }
     if (!device) return reply.code(401).send({ error: 'unauthorized', message: 'Устройство не привязано или отключено' });
     const body = validateOrThrow(heartbeatSchema, request.body ?? {}, reply);
     if (!body) return;

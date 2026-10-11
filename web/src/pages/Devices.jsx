@@ -51,6 +51,7 @@ export default function Devices() {
       <section className="card">
         <h2>Привязать устройство</h2>
         <p className="muted">Получите код и введите его в приложении «Светлана»: Настройки → Личный кабинет. Код действует 10 минут и подходит один раз.</p>
+        <p className="muted"><strong>Никому не сообщайте код</strong>: ни «поддержке», ни по телефону. Кто введёт код, тот привяжет своё устройство к вашему кабинету.</p>
         <button className="btn btn-primary" onClick={makeCode}>Получить код</button>
         {code && <p style={{ fontSize: 28, letterSpacing: 4, fontFamily: 'monospace' }}>{code.code} <small className="muted">до {fmtTime(code.expires_at)}</small></p>}
         {list && (!has('windows') || !has('android')) && (
@@ -71,6 +72,7 @@ export default function Devices() {
               <span className={'badge ' + (d.online ? 'ok' : '')}>{d.online ? '● в сети' : '○ не в сети'}</span>
             </div>
             <p className="muted">Версия {d.app_version || '—'} · последний сигнал {fmtTime(d.last_seen_at)}</p>
+            <p className="muted small">Состояние защиты по данным самого устройства:</p>
             <ul>
               {CHECKS.map(([k, label]) => (
                 <li key={k}>{d.status?.[k] ? '✅' : '⚠️'} {label}</li>
