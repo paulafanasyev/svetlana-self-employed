@@ -214,10 +214,25 @@ function defaultStorage() {
 
 // ───────────────────────── store ─────────────────────────
 
-export function createCrmStore({ storage = defaultStorage(), clock = () => Date.now() } = {}) {
+/** Ключ хранилища для конкретного пользователя: данные разных аккаунтов в одном браузере не смешиваются. */
+export function storageKeyFor(owner) {
+  const id = String(owner ?? '').trim();
+  return id ? `${STORAGE_KEY}:${encodeURIComponent(id)}` : STORAGE_KEY;
+}
+
+/** Русское склонение: plural(5, ['контакт', 'контакта', 'контактов']) → 'контактов'. */
+export function plural(n, [one, few, many]) {
+  const a = Math.abs(n) % 100; const b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b === 1) return one;
+  if (b >= 2 && b <= 4) return few;
+  return many;
+}
+
+export function createCrmStore({ storage = defaultStorage(), clock = () => Date.now(), key = STORAGE_KEY } = {}) {
   let data;
   try {
-    data = sanitizeData(JSON.parse(storage.getItem(STORAGE_KEY) || 'null'));
+    data = sanitizeData(JSON.parse(storage.getItem(key) || 'null'));
   } catch {
     data = sanitizeData(null);
   }
@@ -226,7 +241,7 @@ export function createCrmStore({ storage = defaultStorage(), clock = () => Date.
 
   const commit = () => {
     revision += 1;
-    try { storage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* квота — данные остаются в памяти */ }
+    try { storage.setItem(key, JSON.stringify(data)); } catch { /* квота — данные остаются в памяти */ }
     listeners.forEach((fn) => fn(revision));
   };
 
@@ -280,6 +295,10 @@ export function createCrmStore({ storage = defaultStorage(), clock = () => Date.
       const cur = contactById(id);
       if (!cur) throw new Error('Контакт не найден');
       if (patch.name !== undefined && !str(patch.name, 300)) throw new Error('Имя контакта обязательно');
+      if (patch.phones !== undefined || patch.emails !== undefined) {
+        const dup = findDuplicate({ phones: patch.phones ?? cur.phones, emails: patch.emails ?? cur.emails }, id);
+        if (dup) throw new Error(`Такой номер или e-mail уже есть у «${dup.name}»`);
+      }
       const next = sanitizeContact({ ...cur, ...patch, id, createdAt: cur.createdAt, updatedAt: clock() });
       data.contacts = data.contacts.map((c) => (c.id === id ? next : c));
       commit();
@@ -407,11 +426,11 @@ export function createCrmStore({ storage = defaultStorage(), clock = () => Date.
       const s = store.stats(now);
       const tasks = store.listActivities({ openTasks: true }).slice(0, 3);
       const parts = [
-        `В CRM ${s.contacts} контактов, из них клиентов ${s.byStatus.client}.`,
-        `Открытых сделок ${s.openDeals} на ${money(s.pipelineValue)}.`,
-        s.openTasks ? `Задач в работе ${s.openTasks}${s.overdueTasks ? `, просрочено ${s.overdueTasks}` : ''}.` : 'Открытых задач нет.',
+        `В CRM ${s.contacts} ${plural(s.contacts, ['контакт', 'контакта', 'контактов'])}, из них клиентов: ${s.byStatus.client}.`,
+        `Открытых сделок: ${s.openDeals} на ${money(s.pipelineValue)}.`,
+        s.openTasks ? `Задач в работе: ${s.openTasks}${s.overdueTasks ? `, просрочено: ${s.overdueTasks}` : ''}.` : 'Открытых задач нет.',
       ];
-      if (s.receiptsMissing) parts.push(`Не отмечены чеки по ${s.receiptsMissing} оплаченным сделкам — проверьте «Мой налог».`);
+      if (s.receiptsMissing) parts.push(`Не отмечены чеки по оплаченным сделкам: ${s.receiptsMissing}. Проверьте «Мой налог».`);
       if (tasks.length) parts.push('Ближайшие задачи: ' + tasks.map((t) => t.text).join('; ') + '.');
       return parts.join(' ');
     },
@@ -480,8 +499,13 @@ export function createCrmStore({ storage = defaultStorage(), clock = () => Date.
 }
 
 let shared = null;
-/** Единый экземпляр для страниц кабинета. */
-export function crmStore() {
-  if (!shared) shared = createCrmStore();
+let sharedOwner = null;
+/** Экземпляр для текущего пользователя кабинета; при смене аккаунта создаётся заново. */
+export function crmStore(owner = null) {
+  const id = owner == null ? '' : String(owner);
+  if (!shared || sharedOwner !== id) {
+    shared = createCrmStore({ key: storageKeyFor(id) });
+    sharedOwner = id;
+  }
   return shared;
 }

@@ -47,7 +47,7 @@ test('«напомни завтра» ставит срок на 9:00 следу
 test('чтение (сводка, поиск) выполняется без подтверждения; неизвестное — подсказка', () => {
   const s = createCrmStore({ storage: mem(), clock: () => NOW });
   s.addContact({ name: 'Пётр', phones: '+79990000000' });
-  assert.match(runCommand(parseCommand('сводка', s, NOW), s).text, /1 контактов/);
+  assert.match(runCommand(parseCommand('сводка', s, NOW), s).text, /1 контакт,/);
   assert.match(runCommand(parseCommand('найди Пётр', s, NOW), s).text, /Пётр/);
   assert.equal(parseCommand('удали всё', s, NOW), null);
   assert.match(runCommand(null, s).text, /Не поняла/);
