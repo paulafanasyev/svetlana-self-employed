@@ -41,6 +41,12 @@ const sha256 = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 const normalizeCode = (raw) => String(raw ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const now = () => Math.floor(Date.now() / 1000);
 
+/** Отключить устройства пользователя, молчавшие 90 дней: брошенные записи не занимают лимит. */
+function pruneStale(userId) {
+  db().prepare('UPDATE devices SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL AND COALESCE(last_seen_at, created_at) < ?')
+    .run(now(), userId, now() - STALE_S);
+}
+
 function newCode() {
   let s = '';
   for (let i = 0; i < 12; i++) s += ALPHABET[randomInt(ALPHABET.length)];
@@ -101,6 +107,7 @@ export default async function deviceRoutes(fastify) {
   });
 
   fastify.get('/', auth, async (request, reply) => {
+    pruneStale(request.user.id);
     const rows = db()
       .prepare('SELECT * FROM devices WHERE user_id = ? AND revoked_at IS NULL ORDER BY created_at DESC')
       .all(request.user.id);
@@ -108,6 +115,7 @@ export default async function deviceRoutes(fastify) {
   });
 
   fastify.post('/link-code', { ...auth, config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    pruneStale(request.user.id);
     const count = db().prepare('SELECT COUNT(*) AS n FROM devices WHERE user_id = ? AND revoked_at IS NULL').get(request.user.id).n;
     if (count >= MAX_DEVICES) {
       return reply.code(409).send({ error: 'too_many_devices', message: `Не больше ${MAX_DEVICES} устройств. Отключите ненужные.` });
@@ -141,6 +149,7 @@ export default async function deviceRoutes(fastify) {
         .prepare('SELECT * FROM device_link_codes WHERE code_hash = ? AND used_at IS NULL AND expires_at >= ?')
         .get(hash, now());
       if (!row) return;
+      pruneStale(row.user_id);
       const active = db().prepare('SELECT COUNT(*) AS n FROM devices WHERE user_id = ? AND revoked_at IS NULL').get(row.user_id).n;
       if (active >= MAX_DEVICES) return;
       db().prepare('UPDATE device_link_codes SET used_at = ? WHERE code_hash = ?').run(now(), hash);
