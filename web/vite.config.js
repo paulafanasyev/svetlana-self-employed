@@ -5,6 +5,14 @@ import react from '@vitejs/plugin-react';
 // '/<repo>/'. The same bundle is used for both deployments (§2, §53).
 const BASE = process.env.VITE_BASE_PATH || '/';
 
+// Canonical/OG origin for index.html. On Vercel previews fall back to the
+// project's production URL; otherwise the primary domain мир-самозанятых.рф.
+if (!process.env.VITE_PUBLIC_ORIGIN) {
+  process.env.VITE_PUBLIC_ORIGIN = process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL
+    : 'https://xn----8sba1acxdkgqms3b9euc.xn--p1ai';
+}
+
 export default defineConfig({
   base: BASE,
   plugins: [react()],

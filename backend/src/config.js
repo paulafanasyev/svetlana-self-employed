@@ -8,6 +8,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { tmpdir } from 'node:os';
 import { z } from 'zod';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -35,6 +37,34 @@ function loadDotEnv(file) {
 }
 
 loadDotEnv(resolve(__dirname, '../.env'));
+
+/**
+ * Temporary Vercel preview (serverless): the deployment bundle is read-only and
+ * every function instance is isolated. Without explicit settings we run in an
+ * honest "demo" mode: data lives in the instance temp dir and a per-instance
+ * JWT secret is generated. /health reports this as `ephemeral_demo` so nobody
+ * mistakes it for production storage. Explicit env vars always win.
+ */
+export const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const ephemeral = { secret: false, storage: false };
+if (isServerless) {
+  const tmp = tmpdir();
+  if (!process.env.DB_PATH) { process.env.DB_PATH = resolve(tmp, 'mir-app.sqlite'); ephemeral.storage = true; }
+  if (!process.env.STORAGE_DIR) { process.env.STORAGE_DIR = resolve(tmp, 'mir-storage'); ephemeral.storage = true; }
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    process.env.JWT_SECRET = randomBytes(48).toString('hex');
+    ephemeral.secret = true;
+    console.warn('⚠️  JWT_SECRET is not set: generated a per-instance secret (temporary demo mode). Set JWT_SECRET in Vercel → Settings → Environment Variables.');
+  }
+  if (!process.env.WEB_ORIGIN) {
+    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+    if (host) process.env.WEB_ORIGIN = 'https://' + host;
+  }
+  if (!process.env.CORS_ORIGINS) {
+    process.env.CORS_ORIGINS = [process.env.VERCEL_PROJECT_PRODUCTION_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_URL]
+      .filter(Boolean).map((h) => 'https://' + h).join(',');
+  }
+}
 
 const schema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']).default('development'),
@@ -115,4 +145,7 @@ export const config = Object.freeze({
   ])],
   isProd: parsed.data.NODE_ENV === 'production',
   isTest: parsed.data.NODE_ENV === 'test',
+  isServerless,
+  // true when running as a temporary serverless demo without durable storage/secret
+  ephemeralDemo: ephemeral.secret || ephemeral.storage,
 });

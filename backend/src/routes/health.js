@@ -27,6 +27,8 @@ export default async function healthRoutes(fastify) {
       time: new Date().toISOString(),
       checks,
       migrations,
+      // Temporary serverless preview without durable storage / fixed secret.
+      storage: config.ephemeralDemo ? 'ephemeral_demo' : 'persistent',
       payment_provider: config.isProd && config.PAYMENT_PROVIDER === 'test'
         ? 'misconfigured_in_production'
         : config.PAYMENT_PROVIDER,
