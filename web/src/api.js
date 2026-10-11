@@ -344,6 +344,14 @@ export const profileApi = {
   update: (body) => api.put('/profile', body),
 };
 
+/** Svetlana devices cabinet (desktop + Android linked to this account). */
+export const devices = {
+  list: () => api.get('/devices'),
+  linkCode: () => api.post('/devices/link-code'),
+  revoke: (id) => api.del(`/devices/${encodeURIComponent(id)}`),
+  catalog: () => api.get('/devices/catalog'),
+};
+
 export const admin = {
   users: (params = '') => api.get(`/admin/users${params}`),
   updateUser: (id, body) => api.patch(`/admin/users/${id}`, body),
@@ -363,5 +371,3 @@ export const admin = {
   siteAnalytics: (days = 30) => api.get('/admin/site-analytics?days=' + encodeURIComponent(days)),
   siteAnalyticsCsv: (days = 30) => api.get('/admin/site-analytics.csv?days=' + encodeURIComponent(days)),
 };
-
-

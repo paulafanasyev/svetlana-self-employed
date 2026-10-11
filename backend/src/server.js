@@ -48,6 +48,7 @@ import ragRoutes from './routes/rag.js';
 import aiRoutes from './routes/ai.js';
 import ttsRoutes from './routes/tts.js';
 import adminRoutes from './routes/admin.js';
+import deviceRoutes from './routes/devices.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const WEB_DIST = resolve(__dirname, '../../web/dist');
@@ -138,6 +139,7 @@ export async function buildServer() {
       api.register(aiRoutes, { prefix: '/ai' });
       api.register(ttsRoutes, { prefix: '/tts' });
       api.register(adminRoutes, { prefix: '/admin' });
+      api.register(deviceRoutes, { prefix: '/devices' });
     },
     { prefix: '/api/v1' }
   );

@@ -39,6 +39,7 @@ import Experts from './pages/Experts.jsx';
 import Competitors from './pages/Competitors.jsx';
 import Analytics from './pages/Analytics.jsx';
 import Profile from './pages/Profile.jsx';
+import Devices from './pages/Devices.jsx';
 import Settings from './pages/Settings.jsx';
 import Admin from './pages/Admin.jsx';
 
@@ -46,6 +47,7 @@ const NAV = [
   { group: 'Светлана', items: [
     { to: '/app', icon: '🏠', label: 'Обзор', end: true },
     { to: '/app/svetlana', icon: '✨', label: 'Светлана' },
+    { to: '/app/devices', icon: '📲', label: 'Мои устройства' },
   ]},
   { group: 'CRM', items: [
     { to: '/app/clients', icon: '👥', label: 'Клиенты' },
@@ -178,6 +180,7 @@ export default function App() {
 
       <Route path="/app" element={<Protected><Dashboard /></Protected>} />
       <Route path="/app/svetlana" element={<Protected><SvetlanaPage /></Protected>} />
+      <Route path="/app/devices" element={<Protected><Devices /></Protected>} />
       <Route path="/app/clients" element={<Protected><Clients /></Protected>} />
       <Route path="/app/companies" element={<Protected><Companies /></Protected>} />
       <Route path="/app/leads" element={<Protected><Leads /></Protected>} />
