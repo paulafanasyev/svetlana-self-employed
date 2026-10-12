@@ -81,7 +81,7 @@ export async function buildServer() {
         styleSrc: ["'self'", "'unsafe-inline'"],
         styleSrcAttr: ["'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
-        connectSrc: ["'self'", config.GITHUB_PAGES_ORIGIN, config.WEB_ORIGIN, "https://mir-samozanyatykh-api-frankfurt.onrender.com"],
+        connectSrc: ["'self'", config.WEB_ORIGIN, "https://mir-samozanyatykh-api-frankfurt.onrender.com"],
         fontSrc: ["'self'", "data:", "https:"],
         workerSrc: ["'self'", "blob:"],
       },
@@ -176,7 +176,7 @@ export async function buildServer() {
       if (req.url.startsWith('/api/') || req.url.startsWith('/storage/')) {
         return reply.code(404).send({ error: 'not_found', message: 'Not found' });
       }
-      // Deep links into the SPA (§3: GitHub Pages + root domain both need this).
+      // Deep links into the SPA: любой путь сайта отдаёт index.html.
       return reply.sendFile('index.html');
     });
   } else {

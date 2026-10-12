@@ -1,6 +1,5 @@
 User-agent: *
 Allow: /
 # Канонический сайт — https://мир-самозанятых.рф/
-# GitHub Pages копия развёртывается отдельно и не индексируется.
 
-Sitemap: https://мир-самозанятых.рф/sitemap.xml
+Sitemap: https://xn----8sba1acxdkgqms3b9euc.xn--p1ai/sitemap.xml

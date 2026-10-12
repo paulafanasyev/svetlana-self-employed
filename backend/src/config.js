@@ -83,11 +83,9 @@ const schema = z.object({
   JWT_REFRESH_TTL: z.string().default('30d'),
   REFRESH_TOKEN_ROTATION: z.coerce.boolean().default(true),
 
-  // CORS: comma-separated list. Include the production domain + GitHub Pages origin.
+  // CORS: comma-separated list of allowed browser origins (production domain + partner sites).
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   CORS_ORIGINS: z.string().default(''),
-  // Public SPA origin used by GitHub Pages while the primary domain is unavailable.
-  GITHUB_PAGES_ORIGIN: z.string().url().default('https://paulafanasyev.github.io'),
 
   // Светлана runtime: model endpoint and key exist only on the server.
   AI_API_KEY: z.string().optional(),
@@ -143,12 +141,11 @@ export const config = Object.freeze({
   // file named ":memory:" and break in-memory test databases.
   DB_PATH: parsed.data.DB_PATH === ':memory:' ? ':memory:' : resolve(__dirname, '../', parsed.data.DB_PATH),
   STORAGE_DIR: resolve(__dirname, '../', parsed.data.STORAGE_DIR),
-  corsOrigins: [...new Set([
-    ...(parsed.data.CORS_ORIGINS
+  corsOrigins: [...new Set(
+    parsed.data.CORS_ORIGINS
       ? parsed.data.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
-      : [parsed.data.WEB_ORIGIN]),
-    parsed.data.GITHUB_PAGES_ORIGIN,
-  ])],
+      : [parsed.data.WEB_ORIGIN],
+  )],
   isProd: parsed.data.NODE_ENV === 'production',
   isTest: parsed.data.NODE_ENV === 'test',
   isServerless,
