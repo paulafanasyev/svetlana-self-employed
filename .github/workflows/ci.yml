@@ -124,11 +124,14 @@ jobs:
           Allow: /
           Sitemap: https://paulafanasyev.github.io/svetlana-self-employed/sitemap.xml
           EOF
+      # Артефакт нужен только для публикации (master/ручной запуск); квота не красит PR.
       - uses: actions/upload-artifact@v7
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
         with:
           name: web-dist
           path: web/dist
-          retention-days: 14
+          retention-days: 3
 
   # ─────────────────────────────────────────────────────────────────────────
   # 4. Lightweight security gate
@@ -210,12 +213,14 @@ jobs:
             exit 1
           fi
           echo "Release manifest is HTTPS-only"
+      # APK/AAB только для master/ручного запуска, 3 дня; ошибка квоты не валит сборку.
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
         with:
           name: android-release
           path: |
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: ignore
-          retention-days: 14
+          retention-days: 3
