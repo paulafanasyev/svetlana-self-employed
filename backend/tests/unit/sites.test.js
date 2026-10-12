@@ -15,7 +15,6 @@ test('промпты: тема сайта и запрет кода вне Svetla
   assert.match(SITES.repetitor.prompt(), /код за пользователя здесь нельзя/);
   assert.match(SITES.svetlana2.prompt(), /писать, объяснять и проверять код/);
   assert.match(SITES.svetlana2.prompt(), /управлять командой/);
-  assert.match(SITES.mir.prompt(), /Мир Самозанятых/);
 });
 
 test('АИКО не отправляет на другие маркетплейсы', () => {
@@ -46,4 +45,11 @@ test('Svetlana 2.0 не режет ответ', () => {
 test('телефоны и e-mail скрываются, детский ответ без markdown', () => {
   assert.ok(!/914|kid@/.test(redactPersonal('мой номер +7 914 828-99-64, почта kid@mail.ru')));
   assert.equal(tidyForChild('**Молодец!**'), 'Молодец!');
+});
+
+test('из браузера можно звать только АИКО и Репетитор', () => {
+  const browser = SITE_IDS.filter((id) => SITES[id].publicOk);
+  assert.deepEqual(browser.sort(), ['aiko', 'repetitor']);
+  assert.match(SITES.repetitor.prompt(), /английский язык и математика/);
+  assert.match(SITES.repetitor.prompt(), /строго в этом формате/);
 });

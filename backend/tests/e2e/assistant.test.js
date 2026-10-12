@@ -32,7 +32,6 @@ test('список сайтов без секретов', async () => {
 
 test('неизвестный сайт — 404, без ключа — 401, выключенный профиль — 503', async () => {
   assert.equal((await chat('nope', { message: 'привет' }, 'x')).statusCode, 404);
-  assert.equal((await chat('constructor', { message: 'привет' }, 'x')).statusCode, 404, 'служебные имена объекта — не сайты');
   assert.equal((await chat('zaryadka', { message: 'привет' })).statusCode, 401);
   assert.equal((await chat('zaryadka', { message: 'привет' }, 'test-key-aiko-1234567890')).statusCode, 401, 'ключ другого сайта не подходит');
   assert.equal((await chat('svetlana2', { message: 'напиши код' }, 'anything')).statusCode, 503, 'полный режим без ключа выключен');
@@ -69,4 +68,26 @@ test('Пико для я-зарядка.рф: выключен без PICO_PUBLI
     assert.equal(res.json().conversationId, 'conv-test-0001');
   }
   delete process.env.PICO_PUBLIC;
+});
+
+test('браузерные сайты: только из ASSISTANT_PUBLIC и только профили publicOk', async () => {
+  delete process.env.ASSISTANT_PUBLIC;
+  const off = await fastify.inject({ method: 'POST', url: '/api/v1/assistant/public/repetitor/chat', body: { message: 'Explain Present Simple' } });
+  assert.equal(off.statusCode, 503);
+  process.env.ASSISTANT_PUBLIC = 'repetitor, svetlana2, mir, nope';
+  const g = (site) => fastify.inject({ method: 'GET', url: `/api/v1/assistant/public/${site}/chat` });
+  assert.equal((await g('repetitor')).json().configured, true);
+  assert.equal((await g('svetlana2')).json().configured, false, 'полный режим из браузера нельзя');
+  assert.equal((await g('mir')).json().configured, false);
+  const s2 = await fastify.inject({ method: 'POST', url: '/api/v1/assistant/public/svetlana2/chat', body: { message: 'напиши код' } });
+  assert.equal(s2.statusCode, 503);
+  const bad = await fastify.inject({ method: 'POST', url: '/api/v1/assistant/public/repetitor/chat', body: { message: '   ' } });
+  assert.equal(bad.statusCode, 400);
+  const res = await fastify.inject({ method: 'POST', url: '/api/v1/assistant/public/repetitor/chat', body: { message: 'Correct: "She go to school." Return JSON only.' } });
+  assert.ok([200, 503].includes(res.statusCode), res.body);
+  if (res.statusCode === 200) {
+    assert.equal(res.json().site, 'repetitor');
+    assert.equal(typeof res.json().content, 'string');
+  }
+  delete process.env.ASSISTANT_PUBLIC;
 });

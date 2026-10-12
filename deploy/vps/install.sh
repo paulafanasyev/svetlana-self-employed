@@ -79,7 +79,8 @@ DB_PATH=$DATA/data/app.sqlite
 STORAGE_DIR=$DATA/storage
 JWT_SECRET=$(rnd 48)
 WEB_ORIGIN=https://$MIR_DOMAIN
-CORS_ORIGINS=https://$MIR_DOMAIN,https://www.$MIR_DOMAIN
+# Репетитор (Vercel) зовёт Светлану прямо из браузера — его адрес тоже в списке.
+CORS_ORIGINS=https://$MIR_DOMAIN,https://www.$MIR_DOMAIN,https://ai-english-teacher-one.vercel.app
 SEED_DEMO_DATA=false
 AI_API_KEY=${AI_API_KEY:-}
 AI_BASE_URL=$AI_BASE_URL
@@ -88,6 +89,8 @@ AI_TIMEOUT_MS=30000
 AI_MAX_RETRIES=1
 # Пико на я-зарядка.рф (публичный детский чат через единую Светлану)
 PICO_PUBLIC=true
+# Сайты без своего сервера: «Светлана онлайн» в Репетиторе (/api/v1/assistant/public/repetitor/chat)
+ASSISTANT_PUBLIC=repetitor
 # Ключи сайтов для единой Светланы (SVETLANA_CORE.md)
 ASSISTANT_KEY_MIR=$(rnd 24)
 ASSISTANT_KEY_AIKO=$(rnd 24)
