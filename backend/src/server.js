@@ -15,7 +15,6 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
 import cookie from '@fastify/cookie';
-import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -153,7 +152,12 @@ export async function buildServer() {
   // fastify-static only *warns* on a missing root, so gate on an explicit
   // existence check — otherwise sendFile would 500 on every deep link while
   // the frontend has not been built yet (API-only / test mode).
-  if (existsSync(WEB_DIST)) {
+  //
+  // На Vercel SPA отдаёт сама платформа (vercel.json → outputDirectory), поэтому
+  // @fastify/static там не загружаем вовсе: он делает CommonJS-require для ESM-зависимости,
+  // что роняло запуск функции (ERR_REQUIRE_ESM).
+  if (!config.isServerless && existsSync(WEB_DIST)) {
+    const { default: fastifyStatic } = await import('@fastify/static');
     await fastify.register(fastifyStatic, {
       root: WEB_DIST,
       prefix: '/',
