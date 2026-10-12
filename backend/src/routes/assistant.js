@@ -4,7 +4,9 @@
  *   GET  /api/v1/assistant/sites              → список профилей (без секретов)
  *   POST /api/v1/assistant/:site/chat         → { content, site }
  *        заголовок: Authorization: Bearer <ключ сайта>
- *        тело: { message, history?: [{ role: 'user'|'assistant', content }] }
+ *        тело: { message, history?: [{ role: 'user'|'assistant', content }], system? }
+ *        system — только для полного режима (svetlana2): дополнительные инструкции клиента
+ *        (инструменты, контекст) идут ПОСЛЕ правил профиля и не отменяют их.
  *
  * Ключ сайта лежит только на сервере сайта (Vercel/VPS), в браузер не попадает:
  *   ASSISTANT_KEY_MIR, ASSISTANT_KEY_AIKO, ASSISTANT_KEY_ZARYADKA,
@@ -14,6 +16,11 @@
  *   GET|POST /api/v1/assistant/pico           → «Спроси Пико» для я-зарядка.рф (браузер, без ключа)
  *        включается PICO_PUBLIC=true; контракт как у старой функции Vercel:
  *        { text, history?, conversationId? } → { answer, conversationId }; лимит 12 в минуту с IP.
+ *
+ *   GET|POST /api/v1/assistant/public/:site/chat → сайты без своего сервера (Репетитор на Vercel, веб-АИКО)
+ *        без ключа, только профили с publicOk из ASSISTANT_PUBLIC (например "repetitor,aiko");
+ *        браузер пускается только с адресов из CORS_ORIGINS; лимит 20 в минуту с IP.
+ *        { message, history? } → { site, content }. Телефоны и e-mail скрываются до модели.
  */
 import { timingSafeEqual, randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -26,7 +33,22 @@ const bodySchema = z.object({
     role: z.enum(['user', 'assistant']),
     content: z.string().min(1).max(4000),
   })).max(10).default([]),
+  system: z.string().max(20000).optional(),
 });
+
+const publicSchema = z.object({
+  message: z.string().trim().min(1).max(8000),
+  history: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string().min(1).max(2000),
+  })).max(6).default([]),
+});
+
+/** Сайты, которым разрешён вызов из браузера (только профили с publicOk). */
+export function publicSites(env = process.env) {
+  return String(env.ASSISTANT_PUBLIC || '').split(',').map((s) => s.trim())
+    .filter((id) => Object.hasOwn(SITES, id) && SITES[id].publicOk === true);
+}
 
 export function siteKey(site, env = process.env) {
   return env[`ASSISTANT_KEY_${site.toUpperCase()}`] || '';
@@ -37,10 +59,11 @@ function sameSecret(a, b) {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-async function askSite(site, message, history, clean) {
+async function askSite(site, message, history, clean, extraSystem = '') {
+  const system = extraSystem ? `${site.prompt()}\n\nДополнительно от клиента:\n${extraSystem}` : site.prompt();
   const result = await chatWithFallback({
     messages: [
-      { role: 'system', content: site.prompt() },
+      { role: 'system', content: system },
       ...history.slice(-10).map((m) => ({ role: m.role, content: clean(m.content) })),
       { role: 'user', content: clean(message) },
     ],
@@ -79,8 +102,27 @@ export default async function assistantRoutes(fastify) {
     }
   });
 
+  fastify.get('/public/:site/chat', async (request, reply) => {
+    reply.header('cache-control', 'no-store');
+    return { ok: true, configured: publicSites().includes(request.params.site) };
+  });
+  fastify.post('/public/:site/chat', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (request, reply) => {
+    reply.header('cache-control', 'no-store');
+    const id = request.params.site;
+    if (!publicSites().includes(id)) return reply.code(503).send({ error: 'site_disabled', message: 'Светлана для этого сайта не подключена' });
+    const body = publicSchema.safeParse(request.body ?? {});
+    if (!body.success) return reply.code(400).send({ error: 'validation_error', message: 'Некорректное сообщение' });
+    try {
+      const content = await askSite(SITES[id], body.data.message, body.data.history, redactPersonal);
+      return { site: id, content: content || 'Не получилось ответить. Попробуйте ещё раз.' };
+    } catch (err) {
+      request.log.error({ err, site: id }, 'public assistant chat failed');
+      return reply.code(503).send({ error: 'ai_unavailable', message: 'Светлана временно недоступна' });
+    }
+  });
+
   fastify.get('/sites', async () => ({
-    data: SITE_IDS.map((id) => ({ id, title: SITES[id].title, enabled: Boolean(siteKey(id)), full_mode: Boolean(SITES[id].fullMode) })),
+    data: SITE_IDS.map((id) => ({ id, title: SITES[id].title, enabled: Boolean(siteKey(id)), browser: publicSites().includes(id), full_mode: Boolean(SITES[id].fullMode) })),
   }));
 
   fastify.post('/:site/chat', async (request, reply) => {
@@ -97,7 +139,8 @@ export default async function assistantRoutes(fastify) {
 
     const clean = site.fullMode ? (s) => s : redactPersonal;
     try {
-      const content = await askSite(site, body.data.message, body.data.history, clean);
+      const extra = site.fullMode && body.data.system ? body.data.system : '';
+      const content = await askSite(site, body.data.message, body.data.history, clean, extra);
       return { site: request.params.site, content: content || 'Не получилось ответить. Попробуйте ещё раз.' };
     } catch (err) {
       request.log.error({ err, site: request.params.site }, 'assistant chat failed');
