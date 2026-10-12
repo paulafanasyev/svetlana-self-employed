@@ -50,16 +50,10 @@ const Admin = lazy(() => import('./pages/Admin.jsx'));
 const NAV = [
   { group: 'Главное', items: [
     { to: '/app', icon: '🏠', label: 'Сегодня', end: true },
-    { to: '/app/crm', icon: '💼', label: 'CRM Светланы' },
     { to: '/app/svetlana', icon: '✨', label: 'Светлана' },
-  ]},
-  { group: 'Клиенты и дела', items: [
-    { to: '/app/clients', icon: '👥', label: 'Клиенты' },
-    { to: '/app/companies', icon: '🏢', label: 'Компании' },
-    { to: '/app/leads', icon: '🎯', label: 'Заявки' },
-    { to: '/app/deals', icon: '🤝', label: 'Сделки' },
-    { to: '/app/projects', icon: '📁', label: 'Проекты' },
-    { to: '/app/tasks', icon: '✅', label: 'Задачи' },
+    // Одна CRM (как в Svetlana 2.0): клиенты, сделки и задачи — внутри неё.
+    // Старые страницы /app/clients, /deals, /tasks… остаются доступны по ссылкам.
+    { to: '/app/crm', icon: '💼', label: 'CRM: клиенты, сделки, задачи' },
     { to: '/app/calendar', icon: '📅', label: 'Календарь' },
   ]},
   { group: 'Документы и деньги', items: [
@@ -70,7 +64,7 @@ const NAV = [
     { to: '/app/grants', icon: '🎁', label: 'Гранты' },
   ]},
   { group: 'Работа', items: [
-    { to: '/app/marketplace', icon: '🛒', label: 'Маркетплейс' },
+    { to: '/app/marketplace', icon: '🛒', label: 'Биржа заказов' },
     { to: '/app/vacancies', icon: '💼', label: 'Вакансии' },
     { to: '/app/applications', icon: '📨', label: 'Мои отклики' },
     { to: '/app/services', icon: '🧰', label: 'Мои услуги' },
