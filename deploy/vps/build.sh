@@ -2,6 +2,7 @@
 # Сборка обоих сайтов из скачанного кода (вызывается из install.sh и update.sh).
 set -euo pipefail
 MIR_DOMAIN="${MIR_DOMAIN:-xn----8sba1acxdkgqms3b9euc.xn--p1ai}"
+YZ_DOMAIN="${YZ_DOMAIN:-xn----8sbapnu4bzhe.xn--p1ai}"
 MIR_DIR=/opt/svetlana/app
 YZ_SRC=/opt/svetlana/ya-zaryadka
 YZ_WWW=/var/www/ya-zaryadka
@@ -29,4 +30,8 @@ rsync -a --delete \
   $YZ_SRC/ $YZ_WWW/
 chown -R root:root $YZ_WWW && find $YZ_WWW -type d -exec chmod 755 {} + && find $YZ_WWW -type f -exec chmod 644 {} +
 test -f $YZ_WWW/index.html && test -f $YZ_WWW/web-app/index.html
+# На своём сервере: канонические ссылки и адрес Пико — я-зарядка.рф (на Vercel остаются как есть).
+grep -rl 'paulafanasyev.github.io/ya-zaryadka-ai' $YZ_WWW --include='*.html' | xargs -r sed -i 's#https://paulafanasyev.github.io/ya-zaryadka-ai/#https://я-зарядка.рф/#g'
+sed -i "s#var SITE = 'https://ya-zaryadka-ai.vercel.app';#var SITE = 'https://$YZ_DOMAIN';#" $YZ_WWW/web-app/assets/pico/pico-chat.js
+grep -q "var SITE = 'https://$YZ_DOMAIN';" $YZ_WWW/web-app/assets/pico/pico-chat.js || echo "!! адрес Пико в pico-chat.js не заменён — проверьте вручную"
 echo "==> Сборка готова"

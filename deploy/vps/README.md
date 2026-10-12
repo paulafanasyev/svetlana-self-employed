@@ -74,6 +74,6 @@ git clone --depth 1 -b master "https://x-access-token:$GITHUB_TOKEN@github.com/p
 ## После переезда
 
 - В Android-приложениях адрес API: `https://мир-самозанятых.рф/api/v1` (уже по умолчанию в CI).
-- Пико в приложении Я-Зарядки: в `web-app/assets/pico/pico-chat.js` вернуть `SITE` на `https://я-зарядка.рф`.
+- Сайт Я-Зарядки на сервере сам получает канонические ссылки и адрес Пико на я-зарядка.рф. Для Android-приложения адрес Пико один раз поменять в `web-app/assets/pico/pico-chat.js` (`SITE`) и пересобрать APK.
 - Проекты Vercel `web`, `backend`, `svetlana_ai`, `ya-zaryadka-ai` можно отключить.
 - Платежи: перед приёмом оплаты указать реального провайдера (`PAYMENT_PROVIDER`, ключи ЮKassa) в `/etc/svetlana/backend.env`.
