@@ -53,3 +53,11 @@ test('из браузера можно звать только АИКО и Ре�
   assert.match(SITES.repetitor.prompt(), /всей школьной программе 1–11 класса/);
   assert.match(SITES.repetitor.prompt(), /строго в этом формате/);
 });
+
+test('свои инструкции (system) с ключом передают только Svetlana 2.0 и АИКО', () => {
+  const ids = SITE_IDS.filter((id) => SITES[id].fullMode || SITES[id].acceptsSystem);
+  assert.deepEqual(ids.sort(), ['aiko', 'svetlana2']);
+  assert.ok(!SITES.aiko.fullMode, 'АИКО не получает полный режим');
+  assert.match(SITES.aiko.prompt(), /только в рамках этих правил/);
+  assert.match(SITES.aiko.enforce('Сравните с Ozon'), /только с маркетплейсом АИКО/);
+});

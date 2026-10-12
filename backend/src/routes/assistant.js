@@ -5,8 +5,8 @@
  *   POST /api/v1/assistant/:site/chat         → { content, site }
  *        заголовок: Authorization: Bearer <ключ сайта>
  *        тело: { message, history?: [{ role: 'user'|'assistant', content }], system? }
- *        system — только для полного режима (svetlana2): дополнительные инструкции клиента
- *        (инструменты, контекст) идут ПОСЛЕ правил профиля и не отменяют их.
+ *        system — только для полного режима (svetlana2) и профилей с acceptsSystem (aiko: инструкции
+ *        агентов маркетплейса). Идёт ПОСЛЕ правил профиля и не отменяет их; фильтр ответа работает как обычно.
  *
  * Ключ сайта лежит только на сервере сайта (Vercel/VPS), в браузер не попадает:
  *   ASSISTANT_KEY_MIR, ASSISTANT_KEY_AIKO, ASSISTANT_KEY_ZARYADKA,
@@ -21,6 +21,7 @@
  *        без ключа, только профили с publicOk из ASSISTANT_PUBLIC (например "repetitor,aiko");
  *        браузер пускается только с адресов из CORS_ORIGINS; лимит 20 в минуту с IP.
  *        { message, history? } → { site, content }. Телефоны и e-mail скрываются до модели.
+ *        Поле system из браузера не принимается никогда.
  */
 import { timingSafeEqual, randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -53,6 +54,11 @@ export function publicSites(env = process.env) {
 
 export function siteKey(site, env = process.env) {
   return env[`ASSISTANT_KEY_${site.toUpperCase()}`] || '';
+}
+
+/** Можно ли профилю передать свои инструкции (только запрос с ключом). */
+export function takesSystem(site) {
+  return Boolean(site && (site.fullMode || site.acceptsSystem));
 }
 
 function sameSecret(a, b) {
@@ -140,7 +146,7 @@ export default async function assistantRoutes(fastify) {
 
     const clean = site.fullMode ? (s) => s : redactPersonal;
     try {
-      const extra = site.fullMode && body.data.system ? body.data.system : '';
+      const extra = takesSystem(site) && body.data.system ? body.data.system : '';
       const content = await askSite(site, body.data.message, body.data.history, clean, extra);
       return { site: request.params.site, content: content || 'Не получилось ответить. Попробуйте ещё раз.' };
     } catch (err) {
