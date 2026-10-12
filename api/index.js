@@ -19,6 +19,14 @@ async function getApp() {
       const { db } = await import('../backend/src/db/client.js');
       const { migrate } = await import('../backend/src/db/migrate.js');
       migrate(db());
+      // Системные данные (шаблоны документов, база знаний ФНС, комиссия). Идемпотентно.
+      // Без них новая база пустая: нет шаблонов договоров, налоговые ответы без источников.
+      try {
+        const { seedBase } = await import('../backend/src/db/seed.js');
+        await seedBase();
+      } catch (error) {
+        console.error('Base seed failed (API continues without it):', error);
+      }
       const app = await buildServer();
       await app.ready();
       return app;

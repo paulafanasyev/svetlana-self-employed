@@ -23,7 +23,8 @@ const DEMO = {
   admin: { email: 'admin@mir-samozanyatyh.ru', password: 'admin12345', name: 'Администратор' },
 };
 
-async function seedBase() {
+/** Системные данные; идемпотентно. Вызывается и из serverless-функции (api/index.js). */
+export async function seedBase() {
   const t = seedTemplates(db());
   console.log(`📄 templates: ${t.inserted} inserted, ${t.updated} updated`);
 
