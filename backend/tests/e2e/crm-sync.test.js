@@ -91,3 +91,23 @@ test('удаление аккаунта удаляет его CRM', async () => 
   assert.equal(del.statusCode, 200);
   assert.equal(db().prepare('SELECT COUNT(*) AS n FROM crm_records WHERE owner_id = ?').get(id).n, 0);
 });
+
+test('клиент, созданный Светланой в чате, попадает в общую CRM и на устройства', async () => {
+  const res = await post('/api/v1/auth/register', {
+    email: email(), password: 'Test123456', display_name: 'CRM AI',
+    consent_personal_data: true, accept_terms: true, consent_ai_processing: true,
+  });
+  assert.equal(res.statusCode, 201, res.body);
+  const token = res.json().access_token;
+  const chat = await post('/api/v1/ai/chat', { message: 'Создай клиента ООО Синхрон' }, token);
+  assert.equal(chat.statusCode, 200, chat.body);
+  const action = (chat.json().actions ?? []).find((a) => a.tool === 'crm.create_client');
+  assert.ok(action, 'Светлана должна вызвать crm.create_client');
+  assert.equal(action.verified, true);
+  const snap = await get('/api/v1/crm/snapshot', token);
+  const c = snap.json().contacts.find((x) => x.name === 'ООО Синхрон');
+  assert.ok(c, 'контакт должен быть в CRM кабинета');
+  assert.equal(c.source, 'chat');
+  const device = await get('/api/v1/crm/sync?since=0', token);
+  assert.ok(device.json().records.some((r) => r.kind === 'contacts' && r.data?.name === 'ООО Синхрон'), 'контакт должен уйти на устройства');
+});
