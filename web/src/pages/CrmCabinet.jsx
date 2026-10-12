@@ -1,14 +1,15 @@
 /**
  * CRM Светланы в личном кабинете — по образцу CRM из Svetlana 2.0:
- * контакты, сделки (воронка), задачи, сводка и данные. Работает на устройстве
- * пользователя (local-first), понимает команды Светланы текстом и голосом,
- * а изменения выполняет только после подтверждения.
+ * контакты, сделки (воронка), задачи, сводка и данные. Данные хранятся в аккаунте
+ * и синхронизируются с Windows и Android (crmSync); без интернета CRM работает
+ * на устройстве и отправляет изменения позже. Понимает команды Светланы текстом
+ * и голосом, а изменения выполняет только после подтверждения.
  *
  * Добавлено для самозанятых: плательщик сделки (НПД 4% / 6%), отметка
  * «чек сформирован в „Мой налог“», оценка налога и контроль лимита 2,4 млн ₽.
  */
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { crm as crmApi } from '../api.js';
+import { api } from '../api.js';
 import { SvetlanaAvatar } from '../components/SvetlanaAvatar.jsx';
 import { svetlanaVoice } from '../lib/svetlanaVoice.js';
 import {
@@ -18,7 +19,9 @@ import {
 import { useAuth } from '../auth.jsx';
 import { parseCommand, runCommand } from '../crm/crmCommands.js';
 import { Icon } from '../crm/icons.jsx';
+import { createCrmSync } from '../crm/crmSync.js';
 import '../crm/crm.css';
+import '../crm/crm-light.css';
 
 const TABS = [
   ['contacts', 'Контакты', 'users'],
@@ -33,9 +36,41 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function useCrm() {
   const { user } = useAuth();
-  const store = crmStore(user?.id ?? user?.email ?? 'guest');
+  const owner = user?.id ?? user?.email ?? 'guest';
+  const store = crmStore(owner);
   useSyncExternalStore(store.subscribe, () => store.revision);
-  return store;
+  return { store, owner, signedIn: Boolean(user?.id) };
+}
+
+/** Синхронизация с аккаунтом: одна CRM на сайте, в Windows и в Android. */
+function useCrmSync(store, owner, enabled) {
+  const [sync, setSync] = useState(null);
+  const [status, setStatus] = useState(null);
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const s = createCrmSync({ store, owner, request: (body) => api.post('/crm/sync', body) });
+    setSync(s);
+    setStatus(s.status);
+    const off = s.subscribe(setStatus);
+    return () => { off(); s.stop(); setSync(null); };
+  }, [store, owner, enabled]);
+  return { sync, status };
+}
+
+const SYNC_TONE = { ok: 'ok', syncing: 'busy', pending: 'busy', idle: 'busy', offline: 'warn', error: 'warn', auth: 'bad' };
+const SYNC_SHORT = { ok: 'Сохранено в аккаунте', syncing: 'Синхронизация…', pending: 'Ожидает отправки', idle: 'Подключаюсь…', offline: 'Нет связи', error: 'Повторю позже', auth: 'Нужен вход' };
+
+function SyncBadge({ status }) {
+  if (!status) return <span className="crm-sync crm-sync-warn" title="CRM работает только на этом устройстве">Только это устройство</span>;
+  return (
+    <span className={'crm-sync crm-sync-' + (SYNC_TONE[status.state] || 'busy')} title={status.message} role="status">
+      <Icon name="cloud" /> {SYNC_SHORT[status.state] || status.message}
+    </span>
+  );
+}
+
+function syncTime(ts) {
+  return ts ? new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ещё не было';
 }
 
 function readFile(file, max) {
@@ -537,15 +572,12 @@ function SummaryTab({ store }) {
 
 // ───────────────────────── Data ─────────────────────────
 
-const SERVER_STATUS = { lead: 'lead', client: 'active', partner: 'active', other: 'paused' };
 
-function DataTab({ store }) {
+function DataTab({ store, sync, status }) {
   const [msg, setMsg] = useState({});
-  const [syncing, setSyncing] = useState(false);
   const csvRef = useRef(null);
   const jsonRef = useRef(null);
   const date = today();
-  const unsynced = store.data.contacts.filter((c) => !c.serverId).length;
   const report = (key, text) => setMsg((m) => ({ ...m, [key]: text }));
 
   async function onCsv(e) {
@@ -567,32 +599,6 @@ function DataTab({ store }) {
       const r = store.importJSON(await readFile(file, LIMITS.backupBytes));
       report('json', `Восстановлено: контактов ${r.contacts}, сделок ${r.deals}, записей ${r.activities}.`);
     } catch (err) { report('json', err.message); }
-  }
-
-  async function syncToAccount() {
-    setSyncing(true);
-    let done = 0; let failed = 0;
-    for (const c of store.data.contacts.filter((x) => !x.serverId)) {
-      try {
-        const row = await crmApi.createClient({
-          type: 'person',
-          name: c.name.slice(0, 200),
-          email: c.emails[0] || null,
-          phone: c.phones[0]?.slice(0, 40) || null,
-          position: c.position.slice(0, 120) || null,
-          status: SERVER_STATUS[c.status] || 'lead',
-          tags: c.tags.slice(0, 30),
-          notes: [c.company && `Компания: ${c.company}`, c.notes].filter(Boolean).join('\n').slice(0, 8000) || null,
-          source: 'crm-svetlana',
-        });
-        store.updateContact(c.id, { serverId: row?.id || 'synced' });
-        done += 1;
-      } catch {
-        failed += 1;
-      }
-    }
-    setSyncing(false);
-    report('sync', failed ? `Перенесено ${done}, не удалось ${failed}. Проверьте соединение и повторите.` : `Перенесено в аккаунт: ${done}.`);
   }
 
   return (
@@ -620,16 +626,21 @@ function DataTab({ store }) {
       </section>
 
       <section className="crm-card crm-pad crm-stack">
-        <h4 className="crm-h4"><Icon name="cloud" /> Перенести в аккаунт</h4>
-        <p className="crm-muted crm-small">Копирует контакты в раздел «Клиенты» вашего аккаунта, чтобы они были доступны с других устройств. Не перенесено: {unsynced}.</p>
-        <div className="crm-row"><button type="button" className="crm-btn crm-btn-ghost" onClick={syncToAccount} disabled={syncing || !unsynced}>{syncing ? 'Переношу…' : 'Перенести'}</button></div>
-        {msg.sync && <p className="crm-small" role="status">{msg.sync}</p>}
+        <h4 className="crm-h4"><Icon name="cloud" /> Синхронизация с аккаунтом</h4>
+        <p className="crm-muted crm-small">Контакты, сделки и задачи хранятся в вашем аккаунте и одинаковы на сайте, в Windows и в Android. Без интернета CRM работает, а изменения отправятся автоматически.</p>
+        {status ? (
+          <>
+            <p className="crm-small" role="status">{status.message}{status.pending > 0 ? ` (в очереди: ${status.pending})` : ''}</p>
+            <p className="crm-muted crm-small">Последняя синхронизация: {syncTime(status.lastSyncAt)}</p>
+            <div className="crm-row"><button type="button" className="crm-btn crm-btn-ghost" onClick={() => sync?.syncNow()} disabled={!sync || status.state === 'syncing'}>{status.state === 'syncing' ? 'Синхронизирую…' : 'Синхронизировать сейчас'}</button></div>
+          </>
+        ) : <p className="crm-warn">Войдите в аккаунт, чтобы CRM сохранялась в нём и была доступна на других устройствах.</p>}
       </section>
 
       <section className="crm-card crm-pad crm-stack crm-danger-card">
         <h4 className="crm-h4 crm-danger"><Icon name="trash" /> Очистить CRM</h4>
-        <p className="crm-muted crm-small">Удалит все данные CRM на этом устройстве. Сначала сделайте резервную копию.</p>
-        <div className="crm-row"><button type="button" className="crm-btn crm-btn-danger" onClick={() => { if (window.confirm('Удалить ВСЕ данные CRM?')) { store.clear(); report('clear', 'CRM очищена'); } }}><Icon name="trash" /> Очистить</button></div>
+        <p className="crm-muted crm-small">Удалит все данные CRM в аккаунте и на всех ваших устройствах. Сначала сделайте резервную копию.</p>
+        <div className="crm-row"><button type="button" className="crm-btn crm-btn-danger" onClick={() => { if (window.confirm('Удалить ВСЕ данные CRM на всех устройствах?')) { store.clear(); report('clear', 'CRM очищена'); } }}><Icon name="trash" /> Очистить</button></div>
         {msg.clear && <p className="crm-small" role="status">{msg.clear}</p>}
       </section>
     </div>
@@ -639,7 +650,8 @@ function DataTab({ store }) {
 // ───────────────────────── Page ─────────────────────────
 
 export default function CrmCabinet() {
-  const store = useCrm();
+  const { store, owner, signedIn } = useCrm();
+  const { sync, status } = useCrmSync(store, owner, signedIn);
   const [tab, setTab] = useState(() => {
     const h = typeof location !== 'undefined' ? location.hash.replace('#', '') : '';
     return TABS.some(([id]) => id === h) ? h : 'contacts';
@@ -665,8 +677,9 @@ export default function CrmCabinet() {
       <header className="crm-head">
         <div>
           <h2 className="crm-title"><Icon name="users" size={24} /> CRM Светланы</h2>
-          <p className="crm-muted crm-small">Клиенты, сделки и задачи хранятся на этом устройстве и работают даже без интернета. Светлана управляет CRM по вашей команде.</p>
+          <p className="crm-muted crm-small">Клиенты, сделки и задачи хранятся в вашем аккаунте и доступны на сайте, в Windows и в Android. Без интернета CRM работает, изменения отправятся позже. Светлана управляет CRM по вашей команде.</p>
         </div>
+        <SyncBadge status={status} />
       </header>
 
       <SvetlanaBar store={store} onDone={onSvetlana} />
@@ -694,7 +707,7 @@ export default function CrmCabinet() {
         {tab === 'deals' && <DealsTab store={store} />}
         {tab === 'tasks' && <TasksTab store={store} />}
         {tab === 'summary' && <SummaryTab store={store} />}
-        {tab === 'data' && <DataTab store={store} />}
+        {tab === 'data' && <DataTab store={store} sync={sync} status={status} />}
       </div>
     </div>
   );
