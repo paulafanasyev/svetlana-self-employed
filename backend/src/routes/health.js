@@ -5,6 +5,7 @@
 import { db } from '../db/client.js';
 import { migrationStatus } from '../db/migrate.js';
 import { config } from '../config.js';
+import { aiStatus } from '../ai/providers.js';
 
 export default async function healthRoutes(fastify) {
   fastify.get('/health', async (request, reply) => {
@@ -36,6 +37,8 @@ export default async function healthRoutes(fastify) {
       payment_provider: config.isProd && config.PAYMENT_PROVIDER === 'test'
         ? 'misconfigured_in_production'
         : config.PAYMENT_PROVIDER,
+      // Серверная модель Светланы: настроена ли и последняя ошибка (без ключей).
+      ai: aiStatus(),
     };
   });
 

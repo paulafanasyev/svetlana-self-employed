@@ -7,11 +7,20 @@
  */
 import { config } from '../config.js';
 
+/** Последнее состояние вызовов модели — для /health (без ключей и текста сообщений). */
+const status = { lastOkAt: null, lastErrorAt: null, lastError: null, toolsSupported: null };
+
+function redact(text, apiKey) {
+  let s = String(text ?? '');
+  if (apiKey) s = s.split(apiKey).join('***');
+  return s.replace(/sk-[A-Za-z0-9_-]{8,}/g, 'sk-***').slice(0, 300);
+}
+
 /** Server-side chat completions client. */
 class OpenAICompatibleProvider {
   constructor({ name, baseUrl, apiKey, model, costPer1kIn = 0, costPer1kOut = 0 }) {
     this.name = name;
-    this.baseUrl = baseUrl;
+    this.baseUrl = baseUrl ? String(baseUrl).replace(/\/+$/, '') : baseUrl;
     this.apiKey = apiKey;
     this.model = model;
     this.costPer1kIn = costPer1kIn;
@@ -19,7 +28,18 @@ class OpenAICompatibleProvider {
     this.timeoutMs = config.AI_TIMEOUT_MS;
   }
   get configured() {
-    return Boolean(this.apiKey);
+    return Boolean(this.apiKey && this.baseUrl);
+  }
+  async post(body, signal) {
+    return fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal,
+    });
   }
   async chat({ messages, tools = [], temperature = 0.4, maxTokens = 1500, signal }) {
     if (!this.configured) throw new Error(`${this.name} not configured`);
@@ -29,7 +49,8 @@ class OpenAICompatibleProvider {
       temperature,
       max_tokens: maxTokens,
     };
-    if (tools.length) {
+    const useTools = tools.length && status.toolsSupported !== false;
+    if (useTools) {
       body.tools = tools.map((t) => ({
         type: 'function',
         function: {
@@ -40,18 +61,25 @@ class OpenAICompatibleProvider {
       }));
       body.tool_choice = 'auto';
     }
-    const res = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal,
-    });
+    let res = await this.post(body, signal);
+    // Многие бесплатные модели не поддерживают function calling и отвечают 4xx.
+    // Тогда повторяем запрос без tools: Светлана отвечает текстом, а не заглушкой.
+    if (!res.ok && useTools && [400, 404, 405, 415, 422, 501].includes(res.status)) {
+      const firstError = await res.text().catch(() => '');
+      delete body.tools;
+      delete body.tool_choice;
+      res = await this.post(body, signal);
+      if (res.ok) {
+        status.toolsSupported = false;
+        console.warn(`AI ${this.name}: model rejected tools (${redact(firstError, this.apiKey).slice(0, 120)}), continuing without tools`);
+      }
+    }
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      throw new Error(`${this.name} HTTP ${res.status}: ${text.slice(0, 300)}`);
+      const err = new Error(`${this.name} HTTP ${res.status}: ${redact(text, this.apiKey)}`);
+      status.lastErrorAt = Date.now();
+      status.lastError = err.message;
+      throw err;
     }
     const json = await res.json();
     const choice = json.choices?.[0];
@@ -61,6 +89,8 @@ class OpenAICompatibleProvider {
       name: tc.function?.name,
       args: safeParse(tc.function?.arguments),
     }));
+    if (useTools && body.tools) status.toolsSupported = true;
+    status.lastOkAt = Date.now();
     return {
       provider: this.name,
       model: this.model,
@@ -348,6 +378,21 @@ const PROVIDERS = [
   new LocalProvider(),
 ];
 
+/** Состояние серверной модели для /health: только флаги и последняя ошибка без секретов. */
+export function aiStatus() {
+  const p = PROVIDERS[0];
+  return {
+    configured: p.configured,
+    has_key: Boolean(p.apiKey),
+    has_base_url: Boolean(p.baseUrl),
+    model: p.configured ? p.model : null,
+    tools_supported: status.toolsSupported,
+    last_ok_at: status.lastOkAt,
+    last_error_at: status.lastErrorAt,
+    last_error: status.lastError,
+  };
+}
+
 /** Router: first configured provider in the configured order wins. */
 export function primaryProvider() {
   const order = config.AI_PROVIDER_ORDER.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -378,10 +423,15 @@ export async function chatWithFallback(params, { retries = config.AI_MAX_RETRIES
       try {
         const result = await provider.chat({ ...params, signal: controller.signal });
         clearTimeout(timer);
-        return { ...result, provider: provider.name, attempts: attempt + 1, fellBack: attempt > 0 };
+        return { ...result, provider: provider.name, attempts: attempt + 1, fellBack: attempt > 0 || provider.name === 'local' && candidates.length > 1 };
       } catch (err) {
         clearTimeout(timer);
         lastError = err;
+        if (provider.name !== 'local') {
+          status.lastErrorAt = Date.now();
+          status.lastError = err.name === 'AbortError' ? `timeout after ${config.AI_TIMEOUT_MS} ms` : String(err.message).slice(0, 300);
+          console.error(`AI provider ${provider.name} failed:`, status.lastError);
+        }
         const isAbort = err.name === 'AbortError';
         if (attempt < retries && !isAbort) {
           await sleep(400 * 2 ** attempt);
