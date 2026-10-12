@@ -123,9 +123,13 @@ const schema = z.object({
 
 const parsed = schema.safeParse(process.env);
 if (!parsed.success) {
+  const issues = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
   console.error('❌ Invalid environment configuration:');
-  for (const issue of parsed.error.issues) {
-    console.error(`  ${issue.path.join('.')}: ${issue.message}`);
+  for (const line of issues) console.error(`  ${line}`);
+  if (isServerless) {
+    // В serverless process.exit убивает функцию без ответа; бросаем ошибку — api/index.js
+    // вернёт 503 с именем переменной (значения не выводятся).
+    throw new Error('Invalid environment configuration: ' + issues.join('; '));
   }
   console.error('\nSet these in backend/.env (see backend/.env.example).');
   process.exit(1);
