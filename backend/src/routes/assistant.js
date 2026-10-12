@@ -27,11 +27,12 @@ import { z } from 'zod';
 import { chatWithFallback } from '../ai/providers.js';
 import { SITES, SITE_IDS, redactPersonal, tidyForChild } from '../ai/sites.js';
 
+// Запросы с ключом идут с серверов сайтов и из Svetlana 2.0 (код, логи) — лимиты шире, чем у браузера.
 const bodySchema = z.object({
-  message: z.string().trim().min(1).max(4000),
+  message: z.string().trim().min(1).max(16000),
   history: z.array(z.object({
     role: z.enum(['user', 'assistant']),
-    content: z.string().min(1).max(4000),
+    content: z.string().min(1).max(8000),
   })).max(10).default([]),
   system: z.string().max(20000).optional(),
 });
