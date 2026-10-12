@@ -50,6 +50,6 @@ test('телефоны и e-mail скрываются, детский ответ
 test('из браузера можно звать только АИКО и Репетитор', () => {
   const browser = SITE_IDS.filter((id) => SITES[id].publicOk);
   assert.deepEqual(browser.sort(), ['aiko', 'repetitor']);
-  assert.match(SITES.repetitor.prompt(), /английский язык и математика/);
+  assert.match(SITES.repetitor.prompt(), /всей школьной программе 1–11 класса/);
   assert.match(SITES.repetitor.prompt(), /строго в этом формате/);
 });
