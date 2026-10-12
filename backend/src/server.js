@@ -48,6 +48,7 @@ import aiRoutes from './routes/ai.js';
 import ttsRoutes from './routes/tts.js';
 import adminRoutes from './routes/admin.js';
 import crmSyncRoutes from './routes/crmSync.js';
+import assistantRoutes from './routes/assistant.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const WEB_DIST = resolve(__dirname, '../../web/dist');
@@ -140,6 +141,8 @@ export async function buildServer() {
       api.register(adminRoutes, { prefix: '/admin' });
       // CRM Светланы: одни данные для сайта, Windows и Android.
       api.register(crmSyncRoutes, { prefix: '/crm' });
+      // Одна Светлана для всех сайтов (АИКО, Я-Зарядка, Репетитор, Svetlana 2.0) — SVETLANA_CORE.md.
+      api.register(assistantRoutes, { prefix: '/assistant' });
     },
     { prefix: '/api/v1' }
   );
