@@ -19,13 +19,16 @@ export default function Dashboard() {
   const loading = clients.loading || overdue.loading || revenue.loading;
   const clientCount = clients.data?.total ?? 0;
   const overdueCount = overdue.data?.total ?? overdue.data?.length ?? 0;
-  const totalRevenue = revenue.data?.total ?? revenue.data?.sum ?? 0;
+  // /invoices/analytics/revenue отдаёт строки по статусу и валюте: { data: [{ status, currency, total, n }] }.
+  const totalRevenue = (Array.isArray(revenue.data?.data) ? revenue.data.data : [])
+    .filter((r) => r.status === 'paid' && (r.currency || 'RUB') === 'RUB')
+    .reduce((sum, r) => sum + (Number(r.total) || 0), 0);
 
   const stats = [
     { icon: '👥', label: 'Клиентов', value: clientCount, to: '/app/clients', loading: clients.loading },
     { icon: '⏰', label: 'Просрочено задач', value: overdueCount, to: '/app/tasks', loading: overdue.loading,
       tone: overdueCount > 0 ? 'warn' : 'ok' },
-    { icon: '💰', label: 'Доход задано', value: fmtMoney(totalRevenue), to: '/app/finance', loading: revenue.loading },
+    { icon: '💰', label: 'Получено оплат', value: fmtMoney(totalRevenue), to: '/app/finance', loading: revenue.loading },
     { icon: '🎁', label: 'Грантов подобрано', value: grants.data?.length ?? grants.data?.total ?? 0,
       to: '/app/grants', loading: grants.loading },
   ];
