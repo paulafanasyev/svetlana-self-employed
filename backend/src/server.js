@@ -64,6 +64,9 @@ export async function buildServer() {
     },
     bodyLimit: 25 * 1024 * 1024,
     ajv: { customOptions: { removeAdditional: 'all' } },
+    // За nginx на VPS (deploy/vps): настоящий IP клиента берём из X-Forwarded-For,
+    // иначе все посетители делили бы один лимит запросов. Включается только явно.
+    trustProxy: process.env.TRUST_PROXY === '1' ? 1 : false,
   });
 
   await fastify.register(helmet, {

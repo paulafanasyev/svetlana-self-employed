@@ -32,6 +32,7 @@ test('список сайтов без секретов', async () => {
 
 test('неизвестный сайт — 404, без ключа — 401, выключенный профиль — 503', async () => {
   assert.equal((await chat('nope', { message: 'привет' }, 'x')).statusCode, 404);
+  assert.equal((await chat('constructor', { message: 'привет' }, 'x')).statusCode, 404, 'служебные имена объекта — не сайты');
   assert.equal((await chat('zaryadka', { message: 'привет' })).statusCode, 401);
   assert.equal((await chat('zaryadka', { message: 'привет' }, 'test-key-aiko-1234567890')).statusCode, 401, 'ключ другого сайта не подходит');
   assert.equal((await chat('svetlana2', { message: 'напиши код' }, 'anything')).statusCode, 503, 'полный режим без ключа выключен');
@@ -49,4 +50,23 @@ test('с ключом сайта Светлана отвечает в теме �
 
 test('мусор в теле — 400', async () => {
   assert.equal((await chat('aiko', { message: '' }, 'test-key-aiko-1234567890')).statusCode, 400);
+});
+
+test('Пико для я-зарядка.рф: выключен без PICO_PUBLIC, включён — отвечает по контракту', async () => {
+  delete process.env.PICO_PUBLIC;
+  const off = await fastify.inject({ method: 'POST', url: '/api/v1/assistant/pico', body: { text: 'привет' } });
+  assert.equal(off.statusCode, 503);
+  assert.equal(off.json().error, 'ai_not_configured');
+  process.env.PICO_PUBLIC = 'true';
+  const health = await fastify.inject({ method: 'GET', url: '/api/v1/assistant/pico' });
+  assert.equal(health.json().configured, true);
+  const empty = await fastify.inject({ method: 'POST', url: '/api/v1/assistant/pico', body: { text: '  ' } });
+  assert.equal(empty.statusCode, 400);
+  const res = await fastify.inject({ method: 'POST', url: '/api/v1/assistant/pico', body: { text: 'Как приседать?', conversationId: 'conv-test-0001' } });
+  assert.ok([200, 502].includes(res.statusCode), res.body);
+  if (res.statusCode === 200) {
+    assert.equal(typeof res.json().answer, 'string');
+    assert.equal(res.json().conversationId, 'conv-test-0001');
+  }
+  delete process.env.PICO_PUBLIC;
 });
