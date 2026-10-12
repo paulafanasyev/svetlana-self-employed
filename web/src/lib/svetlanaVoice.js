@@ -20,6 +20,7 @@ const state = {
 let token = 0;
 let raf = 0;
 let audio = null;
+let clip = null;
 let ctx = null;
 let target = () => ({ open: 0, round: 0 });
 let browserVoice = null;
@@ -57,6 +58,36 @@ const getCtx = () => {
 
 const clean = (text) => speakableText(text);
 
+/** Mouth movement from real audio energy (+ text visemes when text is known). */
+function analyserTarget(analyser, text, elapsed, duration) {
+  const samples = new Float32Array(analyser.fftSize);
+  return () => {
+    analyser.getFloatTimeDomainData(samples);
+
+    let energy = 0;
+    for (const sample of samples) energy += sample * sample;
+
+    const amplitude = Math.min(
+      1,
+      Math.max(0, (Math.sqrt(energy / samples.length) - 0.015) * 7),
+    );
+
+    if (!text) return { open: amplitude, round: 0 };
+
+    const total = duration() || 1;
+    const position = Math.min(
+      text.length - 1,
+      Math.max(0, Math.floor((elapsed() / total) * text.length)),
+    );
+
+    const viseme = visemeFor(text[position] || ' ');
+    return {
+      open: amplitude * (0.65 + 0.35 * Math.max(viseme.open, 0.3)),
+      round: viseme.round,
+    };
+  };
+}
+
 async function serverTts(parts, id) {
   const audioContext = getCtx();
   if (!audioContext) throw new Error('no audio context');
@@ -80,7 +111,6 @@ async function serverTts(parts, id) {
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 512;
 
-    const samples = new Float32Array(512);
     const source = audioContext.createBufferSource();
     source.buffer = buffer;
     source.connect(analyser);
@@ -88,33 +118,12 @@ async function serverTts(parts, id) {
     audio = source;
 
     const startedAt = audioContext.currentTime;
-    target = () => {
-      analyser.getFloatTimeDomainData(samples);
-
-      let energy = 0;
-      for (const sample of samples) energy += sample * sample;
-
-      const amplitude = Math.min(
-        1,
-        Math.max(0, (Math.sqrt(energy / samples.length) - 0.015) * 7),
-      );
-
-      const position = Math.min(
-        text.length - 1,
-        Math.max(
-          0,
-          Math.floor(
-            ((audioContext.currentTime - startedAt) / buffer.duration) * text.length,
-          ),
-        ),
-      );
-
-      const viseme = visemeFor(text[position] || ' ');
-      return {
-        open: amplitude * (0.65 + 0.35 * Math.max(viseme.open, 0.3)),
-        round: viseme.round,
-      };
-    };
+    target = analyserTarget(
+      analyser,
+      text,
+      () => audioContext.currentTime - startedAt,
+      () => buffer.duration,
+    );
 
     state.speaking = true;
     state.mode = 'server';
@@ -179,6 +188,7 @@ function finish(id) {
   if (id !== token) return;
   target = () => ({ open: 0, round: 0 });
   state.speaking = false;
+  state.mode = null;
   startLoop();
   emit();
 }
@@ -234,6 +244,74 @@ export const svetlanaVoice = {
     return true;
   },
 
+  /**
+   * Play a recorded voice clip with lip-sync from the real audio. `media` is a
+   * URL or an existing <audio>/<video> element.
+   * Resolves to 'played' | 'blocked' (autoplay policy) | 'failed'.
+   */
+  async playClip(media, text = '') {
+    if (!state.enabled) return 'failed';
+    this.stop();
+    const id = ++token;
+
+    const el = typeof media === 'string' ? new Audio(media) : media;
+    if (!el) return 'failed';
+    el.crossOrigin = el.crossOrigin || 'anonymous';
+    el.preload = 'auto';
+    clip = el;
+
+    const audioContext = getCtx();
+    let analyser = null;
+    try {
+      if (audioContext) {
+        if (!el.__svSource) el.__svSource = audioContext.createMediaElementSource(el);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        el.__svSource.disconnect();
+        el.__svSource.connect(analyser);
+        analyser.connect(audioContext.destination);
+      }
+    } catch {
+      analyser = null;
+    }
+
+    target = analyser
+      ? analyserTarget(analyser, clean(text), () => el.currentTime, () => el.duration)
+      : () => ({ open: 0.35 + 0.25 * Math.sin(performance.now() / 70), round: 0 });
+
+    state.emotion = 'joy';
+    try {
+      el.currentTime = 0;
+      await el.play();
+    } catch (error) {
+      clip = null;
+      finish(id);
+      return error?.name === 'NotAllowedError' ? 'blocked' : 'failed';
+    }
+    if (id !== token) return 'failed';
+
+    state.speaking = true;
+    state.mode = 'clip';
+    startLoop();
+    emit();
+
+    await new Promise((resolve) => {
+      const done = () => {
+        el.removeEventListener('ended', done);
+        el.removeEventListener('pause', done);
+        el.removeEventListener('error', done);
+        resolve();
+      };
+      el.addEventListener('ended', done);
+      el.addEventListener('pause', done);
+      el.addEventListener('error', done);
+    });
+
+    if (clip === el) clip = null;
+    finish(id);
+    return 'played';
+  },
+
   stop() {
     token += 1;
 
@@ -242,6 +320,13 @@ export const svetlanaVoice = {
         audio.stop();
       } catch {}
       audio = null;
+    }
+
+    if (clip) {
+      try {
+        clip.pause();
+      } catch {}
+      clip = null;
     }
 
     if (S) S.cancel();

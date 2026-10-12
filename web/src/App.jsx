@@ -1,13 +1,16 @@
 /**
  * Router for the public marketing site and the authenticated workspace.
+ * Workspace pages are lazy-loaded so the public site stays light.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, Navigate, NavLink, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from './auth.jsx';
 import { probeHealth } from './api.js';
 import { SvetlanaAvatar } from './components/SvetlanaAvatar.jsx';
 import PublicLayout from './components/PublicLayout.jsx';
 import PublicPages from './pages/PublicPages.jsx';
+import HomePage from './pages/HomePage.jsx';
+import NpdCalculator from './pages/NpdCalculator.jsx';
 import SvetlanaCapabilities from './pages/SvetlanaCapabilities.jsx';
 import RegionalHub from './pages/RegionalHub.jsx';
 import { OrganizationPage, CooperationPage } from './pages/OrganizationPages.jsx';
@@ -15,48 +18,45 @@ import { PrivacyPolicyPage, UserAgreementPage, CookiePolicyPage } from './pages/
 
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import SvetlanaPage from './pages/Svetlana.jsx';
-import Clients from './pages/Clients.jsx';
-import Companies from './pages/Companies.jsx';
-import Leads from './pages/Leads.jsx';
-import Deals from './pages/Deals.jsx';
-import Projects from './pages/Projects.jsx';
-import Tasks from './pages/Tasks.jsx';
-import CalendarPage from './pages/Calendar.jsx';
-import Documents from './pages/Documents.jsx';
-import Contracts from './pages/Contracts.jsx';
-import Finance from './pages/Finance.jsx';
-import Taxes from './pages/Taxes.jsx';
-import Grants from './pages/Grants.jsx';
-import Marketplace from './pages/Marketplace.jsx';
-import Vacancies from './pages/Vacancies.jsx';
-import MyApplications from './pages/MyApplications.jsx';
-import Services from './pages/Services.jsx';
-import Portfolio from './pages/Portfolio.jsx';
-import Courses from './pages/Courses.jsx';
-import Experts from './pages/Experts.jsx';
-import Competitors from './pages/Competitors.jsx';
-import Analytics from './pages/Analytics.jsx';
-import Profile from './pages/Profile.jsx';
-import Settings from './pages/Settings.jsx';
-import Admin from './pages/Admin.jsx';
+
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const SvetlanaPage = lazy(() => import('./pages/Svetlana.jsx'));
+const CrmCabinet = lazy(() => import('./pages/CrmCabinet.jsx'));
+const Clients = lazy(() => import('./pages/Clients.jsx'));
+const Companies = lazy(() => import('./pages/Companies.jsx'));
+const Leads = lazy(() => import('./pages/Leads.jsx'));
+const Deals = lazy(() => import('./pages/Deals.jsx'));
+const Projects = lazy(() => import('./pages/Projects.jsx'));
+const Tasks = lazy(() => import('./pages/Tasks.jsx'));
+const CalendarPage = lazy(() => import('./pages/Calendar.jsx'));
+const Documents = lazy(() => import('./pages/Documents.jsx'));
+const Contracts = lazy(() => import('./pages/Contracts.jsx'));
+const Finance = lazy(() => import('./pages/Finance.jsx'));
+const Taxes = lazy(() => import('./pages/Taxes.jsx'));
+const Grants = lazy(() => import('./pages/Grants.jsx'));
+const Marketplace = lazy(() => import('./pages/Marketplace.jsx'));
+const Vacancies = lazy(() => import('./pages/Vacancies.jsx'));
+const MyApplications = lazy(() => import('./pages/MyApplications.jsx'));
+const Services = lazy(() => import('./pages/Services.jsx'));
+const Portfolio = lazy(() => import('./pages/Portfolio.jsx'));
+const Courses = lazy(() => import('./pages/Courses.jsx'));
+const Experts = lazy(() => import('./pages/Experts.jsx'));
+const Competitors = lazy(() => import('./pages/Competitors.jsx'));
+const Analytics = lazy(() => import('./pages/Analytics.jsx'));
+const Profile = lazy(() => import('./pages/Profile.jsx'));
+const Settings = lazy(() => import('./pages/Settings.jsx'));
+const Admin = lazy(() => import('./pages/Admin.jsx'));
 
 const NAV = [
-  { group: 'Светлана', items: [
-    { to: '/app', icon: '🏠', label: 'Обзор', end: true },
+  { group: 'Главное', items: [
+    { to: '/app', icon: '🏠', label: 'Сегодня', end: true },
     { to: '/app/svetlana', icon: '✨', label: 'Светлана' },
-  ]},
-  { group: 'CRM', items: [
-    { to: '/app/clients', icon: '👥', label: 'Клиенты' },
-    { to: '/app/companies', icon: '🏢', label: 'Компании' },
-    { to: '/app/leads', icon: '🎯', label: 'Лиды' },
-    { to: '/app/deals', icon: '🤝', label: 'Сделки' },
-    { to: '/app/projects', icon: '📁', label: 'Проекты' },
-    { to: '/app/tasks', icon: '✅', label: 'Задачи' },
+    // Одна CRM (как в Svetlana 2.0): клиенты, сделки и задачи — внутри неё.
+    // Старые страницы /app/clients, /deals, /tasks… остаются доступны по ссылкам.
+    { to: '/app/crm', icon: '💼', label: 'CRM: клиенты, сделки, задачи' },
     { to: '/app/calendar', icon: '📅', label: 'Календарь' },
   ]},
-  { group: 'Документы и финансы', items: [
+  { group: 'Документы и деньги', items: [
     { to: '/app/documents', icon: '📄', label: 'Документы' },
     { to: '/app/contracts', icon: '📜', label: 'Договоры' },
     { to: '/app/finance', icon: '💰', label: 'Финансы' },
@@ -64,10 +64,10 @@ const NAV = [
     { to: '/app/grants', icon: '🎁', label: 'Гранты' },
   ]},
   { group: 'Работа', items: [
-    { to: '/app/marketplace', icon: '🛒', label: 'Маркетплейс' },
+    { to: '/app/marketplace', icon: '🛒', label: 'Биржа заказов' },
     { to: '/app/vacancies', icon: '💼', label: 'Вакансии' },
     { to: '/app/applications', icon: '📨', label: 'Мои отклики' },
-    { to: '/app/services', icon: '🧰', label: 'Услуги' },
+    { to: '/app/services', icon: '🧰', label: 'Мои услуги' },
     { to: '/app/portfolio', icon: '🖼️', label: 'Портфолио' },
   ]},
   { group: 'Обучение и рынок', items: [
@@ -79,7 +79,7 @@ const NAV = [
   { group: 'Аккаунт', items: [
     { to: '/app/profile', icon: '👤', label: 'Профиль' },
     { to: '/app/settings', icon: '⚙️', label: 'Настройки' },
-    { to: '/app/admin', icon: '🛡️', label: 'Админка' },
+    { to: '/app/admin', icon: '🛡️', label: 'Администрирование', admin: true },
   ]},
 ];
 
@@ -90,9 +90,13 @@ function BackendBadge() {
     probeHealth().then((r) => { if (alive) setState({ checking: false, ok: r.ok, reason: r.reason ?? '' }); });
     return () => { alive = false; };
   }, []);
-  if (state.checking) return <span className="badge">⏳ проверка API…</span>;
-  if (state.ok) return <span className="badge ok" title="Backend отвечает">● API онлайн</span>;
-  return <span className="badge err" title={state.reason}>● API недоступен</span>;
+  if (state.checking) return <span className="badge">⏳ подключение…</span>;
+  if (state.ok) return <span className="badge ok" title="Сервер отвечает">● На связи</span>;
+  return <span className="badge err" title={state.reason}>● Нет связи с сервером</span>;
+}
+
+function PageLoading() {
+  return <p className="muted" role="status" aria-live="polite">Загружаю раздел…</p>;
 }
 
 function WorkspaceLayout({ children }) {
@@ -100,27 +104,32 @@ function WorkspaceLayout({ children }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => { setOpen(false); }, [location.pathname]);
 
+  const nav = useMemo(() => NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.admin || isAdmin) })), [isAdmin]);
+
   const title = useMemo(() => {
-    for (const group of NAV) {
+    for (const group of nav) {
       const hit = group.items.find((i) => i.end ? location.pathname === i.to : location.pathname.startsWith(i.to));
       if (hit) return hit.label;
     }
-    return 'Рабочее пространство';
-  }, [location.pathname]);
+    return 'Личный кабинет';
+  }, [location.pathname, nav]);
+
+  useEffect(() => { document.title = `${title} — Мир Самозанятых`; }, [title]);
 
   return (
     <div className="app">
       <aside className={'sidebar ' + (open ? 'open' : '')} aria-label="Главное меню">
-        <Link to="/app" className="brand"><SvetlanaAvatar emotion="IDLE" size={34} /><span>Мир Самозанятых<small>Светлана — AI-оператор</small></span></Link>
-        <nav className="nav">{NAV.map((g) => <div key={g.group}><div className="nav-group">{g.group}</div>{g.items.map((i) => <NavLink key={i.to} to={i.to} end={i.end}><span className="emoji" aria-hidden="true">{i.icon}</span> {i.label}</NavLink>)}</div>)}</nav>
+        <Link to="/app" className="brand"><SvetlanaAvatar emotion="IDLE" size={34} voiceControls={false} /><span>Мир Самозанятых<small>личный кабинет</small></span></Link>
+        <nav className="nav">{nav.map((g) => <div key={g.group}><div className="nav-group">{g.group}</div>{g.items.map((i) => <NavLink key={i.to} to={i.to} end={i.end}><span className="emoji" aria-hidden="true">{i.icon}</span> {i.label}</NavLink>)}</div>)}</nav>
         <div className="sidebar-foot"><div className="row between"><span>{user?.email}</span><button className="btn btn-sm" onClick={() => { logout(); navigate('/login'); }}>Выйти</button></div></div>
       </aside>
       <div className="main">
-        <header className="topbar"><button className="hamburger" onClick={() => setOpen((v) => !v)} aria-label="Меню">☰</button><h1>{title}</h1><span className="spacer" /><BackendBadge /><NavLink to="/app/svetlana" className="btn btn-primary btn-sm">✨ Светлана</NavLink></header>
-        <main className="content">{children}</main>
+        <header className="topbar"><button className="hamburger" onClick={() => setOpen((v) => !v)} aria-label="Меню" aria-expanded={open}>☰</button><h1>{title}</h1><span className="spacer" /><BackendBadge /><NavLink to="/app/svetlana" className="btn btn-primary btn-sm">✨ Светлана</NavLink></header>
+        <main className="content"><Suspense fallback={<PageLoading />}>{children}</Suspense></main>
       </div>
     </div>
   );
@@ -142,17 +151,30 @@ function Protected({ children }) {
   return user ? <WorkspaceLayout>{children}</WorkspaceLayout> : <Navigate to="/login" replace />;
 }
 
+function NotFound() {
+  useEffect(() => { document.title = 'Страница не найдена — Мир Самозанятых'; }, []);
+  return (
+    <section className="site-section">
+      <div className="site-container" style={{ textAlign: 'center', padding: '48px 0' }}>
+        <h1>Такой страницы нет</h1>
+        <p className="muted">Возможно, ссылка устарела. Начните с главной или спросите Светлану.</p>
+        <p><Link className="site-btn site-btn-primary" to="/">На главную</Link></p>
+      </div>
+    </section>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<PublicRoute page="home" />} />
+      <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
       <Route path="/about" element={<PublicRoute page="about" />} />
       <Route path="/organization" element={<PublicLayout><OrganizationPage /></PublicLayout>} />
       <Route path="/cooperation" element={<PublicLayout><CooperationPage /></PublicLayout>} />
       <Route path="/privacy" element={<PublicLayout><PrivacyPolicyPage /></PublicLayout>} />
       <Route path="/terms" element={<PublicLayout><UserAgreementPage /></PublicLayout>} />
       <Route path="/cookies" element={<PublicLayout><CookiePolicyPage /></PublicLayout>} />
-      <Route path="/calculator" element={<PublicRoute page="calculator" />} />
+      <Route path="/calculator" element={<PublicLayout><NpdCalculator /></PublicLayout>} />
       <Route path="/marketplace" element={<PublicRoute page="marketplace" />} />
       <Route path="/jobs" element={<PublicLayout><RegionalHub /></PublicLayout>} />
       <Route path="/education" element={<PublicRoute page="education" />} />
@@ -177,6 +199,7 @@ export default function App() {
       <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
 
       <Route path="/app" element={<Protected><Dashboard /></Protected>} />
+      <Route path="/app/crm" element={<Protected><CrmCabinet /></Protected>} />
       <Route path="/app/svetlana" element={<Protected><SvetlanaPage /></Protected>} />
       <Route path="/app/clients" element={<Protected><Clients /></Protected>} />
       <Route path="/app/companies" element={<Protected><Companies /></Protected>} />
@@ -203,7 +226,7 @@ export default function App() {
       <Route path="/app/settings" element={<Protected><Settings /></Protected>} />
       <Route path="/app/admin" element={<Protected><Admin /></Protected>} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />
     </Routes>
   );
 }

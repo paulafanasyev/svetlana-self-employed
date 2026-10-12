@@ -9,12 +9,15 @@
  * is assembled from verified results only, so a claim of success always has
  * a DB-backed proof (§14). If everything fails, the user gets an honest
  * FAILED / NOT PROVEN status — never a fake success.
+ *
+ * Текст модели проходит enforceSiteScope(): Светлана не отправляет
+ * пользователя на сторонние сайты и остаётся в рамках платформы.
  */
 import { nanoid } from 'nanoid';
 import { db } from '../db/client.js';
 import { chatWithFallback } from './providers.js';
 import { toolsForLLM, runTool, getTool } from './tools/index.js';
-import { buildSystemPrompt } from './persona.js';
+import { buildSystemPrompt, enforceSiteScope } from './persona.js';
 import { computeEmotion, emotionProfile } from './emotion.js';
 import { retrieve } from './rag.js';
 import { audit } from '../plugins/audit.js';
@@ -109,7 +112,8 @@ export async function converse({ userId, message, conversationId = null, approve
       };
 
       const toolCalls = result.toolCalls ?? [];
-      if (result.content) finalContent = result.content;
+      // Рамки темы: без ссылок на сторонние сайты и советов «идти в другое место».
+      if (result.content) finalContent = enforceSiteScope(result.content);
 
       if (!toolCalls.length) {
         // Terminal answer.

@@ -27,12 +27,35 @@ PAYMENT_PROVIDER=<реальный провайдер>
 SEED_DEMO_DATA=false
 
 AI_API_KEY=<секретный ключ серверного модельного контура>
-AI_BASE_URL=<закрытый HTTPS endpoint модельного сервиса>
-AI_MODEL=svetlana-core
+AI_BASE_URL=<HTTPS endpoint OpenAI-совместимого сервиса, например …/v1>
+AI_MODEL=<имя модели>
 AI_PROVIDER_ORDER=primary,local
 ```
 
 Ключ модельного сервиса хранится только на сервере. Он не должен попадать в web bundle, Android APK, Git или ответы API.
+
+## Временное превью на Vercel
+
+Проект Vercel — **svetlana_ai** (корень репозитория). Ветки, кроме production, собираются как **Preview**,
+поэтому у каждой переменной в Settings → Environment Variables должны стоять отметки
+**Preview** и **Production**. Переменные подхватываются только новой сборкой.
+
+Рекомендуемые для Vercel (лимит функции 60 секунд):
+
+```text
+JWT_SECRET=<случайный секрет от 32 символов>
+AI_API_KEY=<ключ>
+AI_BASE_URL=<https://…/v1>
+AI_MODEL=<имя модели>
+AI_TIMEOUT_MS=25000
+AI_MAX_RETRIES=0
+```
+
+Проверка: `GET /api/v1/health` → блок `ai` (`has_key`, `has_base_url`, `last_error`) без секретов.
+
+Ограничение: на Vercel база SQLite временная (`storage: ephemeral_demo`) — аккаунты и данные
+исчезают при новой сборке и после простоя. Для настоящих пользователей нужен постоянный
+сервер в России (152-ФЗ).
 
 ## Web
 

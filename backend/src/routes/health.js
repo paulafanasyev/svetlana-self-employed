@@ -5,38 +5,47 @@
 import { db } from '../db/client.js';
 import { migrationStatus } from '../db/migrate.js';
 import { config } from '../config.js';
+import { aiStatus } from '../ai/providers.js';
 
 export default async function healthRoutes(fastify) {
-  fastify.get('/health', async () => {
+  fastify.get('/health', async (request, reply) => {
     const checks = { db: 'ok' };
     try {
       db().prepare('SELECT 1').get();
     } catch (err) {
-      checks.db = `fail: ${err.message}`;
+      request.log.error({ err }, 'health: db check failed');
+      checks.db = 'fail';
     }
     let migrations = null;
     try {
       migrations = migrationStatus();
     } catch (err) {
-      checks.migrations = `fail: ${err.message}`;
+      request.log.error({ err }, 'health: migration status failed');
+      checks.migrations = 'fail';
     }
+    const healthy = checks.db === 'ok' && !checks.migrations;
+    if (!healthy) reply.code(503);
     return {
-      status: 'ok',
+      status: healthy ? 'ok' : 'degraded',
       service: 'mir-samozanyatyh-backend',
       version: '3.0.0',
       time: new Date().toISOString(),
       checks,
       migrations,
+      // Temporary serverless preview without durable storage / fixed secret.
+      storage: config.ephemeralDemo ? 'ephemeral_demo' : 'persistent',
       payment_provider: config.isProd && config.PAYMENT_PROVIDER === 'test'
         ? 'misconfigured_in_production'
         : config.PAYMENT_PROVIDER,
+      // Серверная модель Светланы: настроена ли и последняя ошибка (без ключей).
+      ai: aiStatus(),
     };
   });
 
   fastify.get('/health/ready', async (request, reply) => {
     const report = await fastify.inject({ method: 'GET', url: '/api/v1/health' });
     const body = report.json();
-    const ready = body.checks.db === 'ok' && (!body.migrations || body.migrations.pending.length === 0);
+    const ready = body.checks.db === 'ok' && Boolean(body.migrations) && body.migrations.pending.length === 0;
     reply.code(ready ? 200 : 503).send({ ready, checks: body.checks });
   });
 }

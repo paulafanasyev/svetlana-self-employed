@@ -1,0 +1,6 @@
+[Unit]
+Description=Копия базы Светланы
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/svetlana-backup

@@ -26,7 +26,7 @@
     "setup": "npm install && npm run migrate && npm run seed"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": "22.x"
   },
   "keywords": [
     "самозанятые",

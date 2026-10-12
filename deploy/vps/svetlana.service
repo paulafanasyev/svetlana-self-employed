@@ -1,0 +1,26 @@
+[Unit]
+Description=Светлана: backend «Мира Самозанятых» и единый ИИ для всех сайтов
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=svetlana
+Group=svetlana
+WorkingDirectory=/opt/svetlana/app/backend
+ExecStart=/usr/bin/node --env-file=/etc/svetlana/backend.env src/server.js
+Restart=always
+RestartSec=3
+# Защита: только свои папки на запись
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/svetlana
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

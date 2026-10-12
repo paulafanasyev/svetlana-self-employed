@@ -1,0 +1,58 @@
+/* CRM Светланы — светлая тема в стиле личного кабинета (поверх crm.css). */
+.crm{--bg:#f6f7fb;--card:#ffffff;--card2:#f8fafc;--line:#e2e8f0;--text:#0f172a;--muted:#64748b;--accent:#4f46e5;--accent2:#7c3aed;
+  color:var(--text);background:var(--bg);border:1px solid var(--line)}
+.crm a{color:#4338ca}
+.crm-title,.crm-h3,.crm-h4,.crm-amount,.crm-kpi strong,.crm-modal h3{color:#0f172a}
+.crm-title .crm-ico{color:#4f46e5}
+.crm-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.crm-card{box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.crm-input{background:#fff;color:#0f172a;border-color:#cbd5e1}
+.crm-input::placeholder{color:#94a3b8}
+.crm-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.18)}
+.crm select.crm-input option{background:#fff;color:#0f172a}
+.crm-input[type=date]{color-scheme:light}
+.crm-btn-ghost{background:#fff;border-color:#cbd5e1;color:#1e293b}
+.crm-btn-ghost:hover:not(:disabled){background:#f1f5f9}
+.crm-btn-danger{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.crm-danger{color:#dc2626!important}
+.crm-btn:focus-visible,.crm-tab:focus-visible,.crm-list-row:focus-visible,.crm input[type=checkbox]:focus-visible{outline-color:#4f46e5}
+.crm-error{color:#dc2626}
+.crm-warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.crm-svetlana{background:linear-gradient(135deg,#eef2ff,#f5f3ff);border-color:#c7d2fe}
+.crm-sv-reply{color:#1e1b4b}
+.crm-icon-btn.is-live{background:#fee2e2;border-color:#fca5a5}
+.crm-tab{background:#fff;border:1px solid var(--line);color:#334155}
+.crm-tab:hover{background:#f1f5f9}
+.crm-tab.is-active{background:var(--accent);border-color:var(--accent);color:#fff}
+.crm-badge{background:rgba(15,23,42,.08)}
+.crm-tab.is-active .crm-badge{background:rgba(255,255,255,.25)}
+.crm-list-row:hover{background:#f8fafc}
+.crm-list-row.is-active{background:#eef2ff}
+.crm-status{background:#f1f5f9;color:#475569}
+.crm-status-client{background:#dcfce7;color:#166534}
+.crm-status-lead{background:#e0e7ff;color:#3730a3}
+.crm-status-partner{background:#cffafe;color:#155e75}
+.crm-tag{background:#eef2ff;color:#3730a3}
+.crm-placeholder{color:#64748b}
+.crm-col-won .crm-h4{color:#15803d}
+.crm-col-lost .crm-h4{color:#b91c1c}
+.crm-receipt{color:#b45309}
+.crm-receipt.is-ok{color:#15803d}
+.crm-overdue{color:#dc2626}
+.crm-kpi-good strong{color:#15803d}
+.crm-kpi-bad strong{color:#b91c1c}
+.crm-bar{background:#e2e8f0}
+.crm-bar i{background:#6366f1}
+.crm-bar i.crm-bar-won{background:#22c55e}
+.crm-bar i.crm-bar-lost{background:#f87171}
+.crm-danger-card{border-color:#fecaca}
+.crm-modal-backdrop{background:rgba(15,23,42,.45)}
+.crm-modal{background:#fff;color:#0f172a;box-shadow:0 25px 60px rgba(15,23,42,.25)}
+.crm-pill{background:#ede9fe;color:#5b21b6}
+.crm-dl div{background:#f8fafc}
+/* статус синхронизации */
+.crm-sync{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+.crm-sync-ok{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+.crm-sync-busy{background:#e0e7ff;color:#3730a3;border-color:#c7d2fe}
+.crm-sync-warn{background:#fffbeb;color:#92400e;border-color:#fde68a}
+.crm-sync-bad{background:#fef2f2;color:#b91c1c;border-color:#fecaca}

@@ -1,0 +1,48 @@
+.svw-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:16px;background:rgba(9,27,18,.46);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:svw-fade .25s ease-out}
+.svw-card{position:relative;display:grid;grid-template-columns:minmax(220px,260px) 1fr;gap:26px;align-items:center;width:min(820px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:28px;border-radius:28px;background:linear-gradient(160deg,#ffffff 0%,#f2f8f3 100%);color:#12261a;box-shadow:0 30px 80px rgba(8,40,22,.35);border:1px solid rgba(33,82,53,.12);animation:svw-rise .35s cubic-bezier(.2,.8,.2,1)}
+.svw-close{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(18,38,26,.06);color:#12261a;font-size:24px;line-height:1;cursor:pointer}
+.svw-close:hover{background:rgba(18,38,26,.12)}
+.svw-media{position:relative;display:grid;place-items:center;min-height:240px}
+.svw-media .sv-full-head{box-shadow:0 14px 40px rgba(25,70,44,.25)}
+.svw-live{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);padding:4px 12px;border-radius:999px;background:#215235;color:#fff;font-size:13px;font-weight:600;white-space:nowrap}
+.svw-eyebrow{display:inline-block;padding:5px 12px;border-radius:999px;background:rgba(47,125,85,.12);color:#1d5c3a;font-size:13px;font-weight:600}
+.svw-body h2{margin:12px 0 8px;font-size:clamp(24px,3.4vw,32px);line-height:1.15;letter-spacing:-.01em}
+.svw-text{margin:0;font-size:17px;line-height:1.55;color:#28402f}
+.svw-note{margin:12px 0 0;padding:10px 12px;border-radius:12px;background:#fff6e0;color:#6b4b00;font-size:14px}
+.svw-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.svw-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:0 18px;border-radius:14px;border:1px solid rgba(33,82,53,.22);background:#fff;color:#15402a;font:inherit;font-size:16px;font-weight:600;text-decoration:none;cursor:pointer;transition:transform .12s ease,background .12s ease}
+.svw-btn:hover{background:#f0f7f2;transform:translateY(-1px)}
+.svw-btn-primary{background:#1f7a4c;border-color:#1f7a4c;color:#fff}
+.svw-btn-primary:hover{background:#18653e}
+.svw-btn-ghost{border-color:transparent;background:transparent;text-decoration:underline;text-underline-offset:3px}
+.svw-btn:focus-visible,.svw-close:focus-visible{outline:3px solid #f2b705;outline-offset:2px}
+.svw-fine{margin:14px 0 0;font-size:13px;line-height:1.45;color:#4f6656}
+.svw-form{margin-top:16px}
+.svw-label{display:block;margin-bottom:6px;font-size:14px;font-weight:600;color:#28402f}
+.svw-form-row{display:flex;gap:10px}
+.svw-input{flex:1;min-width:0;min-height:48px;padding:0 14px;border-radius:14px;border:1.5px solid rgba(33,82,53,.3);background:#fff;color:#12261a;font:inherit;font-size:17px}
+.svw-input:focus{outline:3px solid rgba(242,183,5,.6);outline-offset:1px;border-color:#1f7a4c}
+.svw-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.svw-actions-sub{margin-top:10px}
+@media (max-width:700px){
+  .svw-backdrop{align-items:end;padding:0}
+  .svw-card{grid-template-columns:1fr;gap:12px;padding:22px 18px calc(18px + env(safe-area-inset-bottom));border-radius:26px 26px 0 0;max-height:92vh}
+  .svw-media{min-height:0}
+  .svw-media .sv-full-head{width:150px!important;height:150px!important}
+  .svw-body{text-align:center}
+  .svw-text{font-size:16px}
+  .svw-actions{justify-content:center}
+  .svw-btn{flex:1 1 100%}
+  .svw-form-row{flex-direction:column}
+  .svw-label{text-align:left}
+}
+body.dark .svw-card{background:linear-gradient(160deg,#13241a 0%,#0e1b14 100%);color:#e8f3eb;border-color:rgba(255,255,255,.08)}
+body.dark .svw-text,body.dark .svw-label{color:#cfe2d5}
+body.dark .svw-fine{color:#9fb8a7}
+body.dark .svw-btn{background:#16301f;color:#e8f3eb;border-color:rgba(255,255,255,.14)}
+body.dark .svw-btn-primary{background:#2f9d63;border-color:#2f9d63}
+body.dark .svw-close{background:rgba(255,255,255,.08);color:#e8f3eb}
+body.dark .svw-input{background:#0f2016;color:#e8f3eb;border-color:rgba(255,255,255,.2)}
+@keyframes svw-fade{from{opacity:0}to{opacity:1}}
+@keyframes svw-rise{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.svw-backdrop,.svw-card{animation:none}.svw-btn{transition:none}}
