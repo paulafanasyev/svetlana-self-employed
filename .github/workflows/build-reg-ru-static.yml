@@ -1,0 +1,37 @@
+name: Build REG.RU static site
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/site-10
+    paths:
+      - "web/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/build-reg-ru-static.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-static:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build web frontend
+        run: npm run build:web
+      - name: Upload static site files
+        uses: actions/upload-artifact@v4
+        with:
+          name: mir-samozanyatyh-static-site
+          path: web/dist/
+          if-no-files-found: error
+          retention-days: 7
