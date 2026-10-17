@@ -18,6 +18,11 @@ echo "==> База: миграции"
 cd $MIR_DIR/backend
 runuser -u svetlana -- node --env-file=$ENV src/db/migrate.js
 
+echo "==> Голос Светланы: Piper (Ирина)"
+# Без него сайт говорит синтезатором браузера. Повторный запуск ничего не качает заново.
+cd $MIR_DIR/backend
+as_app bash scripts/install-piper.sh || echo "!! Голос Piper не установлен: Светлана будет говорить голосом браузера"
+
 echo "==> Я-Зарядка: голос Пико и статический сайт"
 cd $YZ_SRC/web-app
 as_app npm install --no-audit --no-fund
