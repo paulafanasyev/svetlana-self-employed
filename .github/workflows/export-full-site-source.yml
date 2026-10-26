@@ -1,0 +1,86 @@
+name: Export full website source archive
+
+on:
+  push:
+    branches:
+      - export/full-site-source
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-full-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pinned website source
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build web and backend
+        run: npm run build
+        env:
+          VITE_BASE_PATH: '/'
+          VITE_PUBLIC_ORIGIN: 'https://xn----8sba1acxdkgqms3b9euc.xn--p1ai'
+      - name: Assemble complete source package
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGING="$RUNNER_TEMP/svetlana-self-employed"
+          mkdir -p "$STAGING"
+
+          # Include tracked project source for frontend, backend/API, Android, deploy, and docs.
+          git archive --format=tar HEAD | tar -xf - -C "$STAGING"
+
+          # Include freshly built website and server artifacts alongside the source.
+          mkdir -p "$STAGING/web/dist"
+          cp -a web/dist/. "$STAGING/web/dist/"
+          if [ -d backend/dist ]; then
+            mkdir -p "$STAGING/backend/dist"
+            cp -a backend/dist/. "$STAGING/backend/dist/"
+          fi
+
+          # Exclude environment secrets, private signing keys, local dependencies and metadata.
+          find "$STAGING" -type f \( -name '.env' -o -name '.env.*' \) ! -name '.env.example' ! -name '.env.sample' -delete
+          find "$STAGING" -type f \( -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' \) -delete
+          find "$STAGING" -type d \( -name node_modules -o -name .git -o -name coverage -o -name .turbo \) -prune -exec rm -rf {} +
+
+          cat > "$STAGING/ARCHIVE-INFO-RU.md" <<'EOF'
+          # Полный архив «Светлана — Мир Самозанятых»
+
+          Архив содержит исходный код проекта с зафиксированного коммита Git, веб-клиент, API/backend, конфигурацию развёртывания, документацию, Android-проект и собранные файлы web/dist (и backend/dist, если сборка их создала).
+
+          ## Важно
+          - Это полный исходный пакет проекта, а не bootstrap-установщик.
+          - node_modules и Git-метаданные не включены; зависимости восстанавливаются командой npm ci.
+          - Файлы окружения с секретами и приватные ключи исключены. Используйте переменные окружения действующего сервера; не заменяйте настоящие секреты заглушками.
+          - Архив не меняет сервер, DNS, Nginx, REG.RU или production.
+          - Сборка frontend находится в web/dist; серверный код — в backend/ и api/.
+          - Перед выкладкой на работающий сервер сделайте резервную копию и проведите smoke-тест.
+
+          Репозиторий: https://github.com/paulafanasyev/svetlana-self-employed
+          Ветка экспорта: export/full-site-source
+          Точный исходный коммит записан в SOURCE-COMMIT.txt.
+          EOF
+
+          printf '%s\n' "$GITHUB_SHA" > "$STAGING/SOURCE-COMMIT.txt"
+          printf '%s\n' "Source ref: $GITHUB_REF" >> "$STAGING/SOURCE-COMMIT.txt"
+          printf '%s\n' "Node: $(node --version)" >> "$STAGING/SOURCE-COMMIT.txt"
+          printf '%s\n' "npm: $(npm --version)" >> "$STAGING/SOURCE-COMMIT.txt"
+
+          cd "$RUNNER_TEMP"
+          zip -qr "$GITHUB_WORKSPACE/svetlana-self-employed-full-source.zip" svetlana-self-employed
+          unzip -t "$GITHUB_WORKSPACE/svetlana-self-employed-full-source.zip"
+          sha256sum "$GITHUB_WORKSPACE/svetlana-self-employed-full-source.zip"
+      - name: Upload full source ZIP
+        uses: actions/upload-artifact@v7
+        with:
+          name: svetlana-self-employed-full-source
+          path: svetlana-self-employed-full-source.zip
+          if-no-files-found: error
+          retention-days: 7
