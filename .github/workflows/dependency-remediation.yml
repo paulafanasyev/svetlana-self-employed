@@ -24,8 +24,13 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - name: Update vulnerable dependencies where npm can resolve them
-        run: npm audit fix --force
+      - name: Pin fixed dependency lines without upgrading the build toolchain
+        run: |
+          npm pkg set backend.dependencies.fastify='^5.12.6'
+          npm pkg set backend.dependencies.zod='^4.6.7'
+          npm pkg set web.dependencies.react-router-dom='^7.18.4'
+          npm install --package-lock-only
+          npm audit fix
       - name: Clean install from regenerated lockfile
         run: npm ci
       - name: Lint
