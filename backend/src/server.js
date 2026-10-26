@@ -18,7 +18,7 @@ import cookie from '@fastify/cookie';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { config } from './config.js';
+import { config, isServerless } from './config.js';
 import { db, closeDb } from './db/client.js';
 import { migrate } from './db/migrate.js';
 import authPlugin from './auth/plugin.js';
@@ -64,8 +64,7 @@ export async function buildServer() {
     },
     bodyLimit: 25 * 1024 * 1024,
     ajv: { customOptions: { removeAdditional: 'all' } },
-    // За nginx на VPS (deploy/vps): настоящий IP клиента берём из X-Forwarded-For,
-    // иначе все посетители делили бы один лимит запросов. Включается только явно.
+    // Behind nginx on the VPS, trust the forwarded client IP only when explicitly enabled.
     trustProxy: process.env.TRUST_PROXY === '1' ? 1 : false,
   });
 
@@ -101,7 +100,6 @@ export async function buildServer() {
     global: true,
     max: config.RATE_LIMIT_MAX,
     timeWindow: '1 minute',
-    // Stricter bucket for auth endpoints (brute-force protection).
     keyGenerator: (req) => `${req.ip}:${req.routerPath ?? ''}`,
     onExceeded: (req) => {
       req.log.warn({ ip: req.ip, path: req.url }, 'rate limit exceeded');
@@ -113,8 +111,7 @@ export async function buildServer() {
   });
 
   // API: everything under a versioned prefix. The auth plugin is registered
-  // inside this scope so its decorators (requireAuth/requireRole/request.user)
-  // are visible to every route plugin below.
+  // inside this scope so its decorators are visible to every route plugin below.
   await fastify.register(
     async (api) => {
       api.register(authPlugin);
@@ -142,29 +139,13 @@ export async function buildServer() {
       api.register(aiRoutes, { prefix: '/ai' });
       api.register(ttsRoutes, { prefix: '/tts' });
       api.register(adminRoutes, { prefix: '/admin' });
-      // CRM Светланы: одни данные для сайта, Windows и Android.
       api.register(crmSyncRoutes, { prefix: '/crm' });
-      // Одна Светлана для всех сайтов (АИКО, Я-Зарядка, Репетитор, Svetlana 2.0) — SVETLANA_CORE.md.
       api.register(assistantRoutes, { prefix: '/assistant' });
     },
     { prefix: '/api/v1' }
   );
 
-  // Generated documents are served only through the authenticated download route
-  // in routes/documents.js. Never expose STORAGE_DIR through a static handler.
-
-  // SPA: serve the built web app if present. This registration owns the
-  // reply.sendFile decorator (used by the history-fallback handler below);
-  // the /storage registration above must keep decorateReply:false so the
-  // two static plugins can coexist.
-  //
-  // fastify-static only *warns* on a missing root, so gate on an explicit
-  // existence check — otherwise sendFile would 500 on every deep link while
-  // the frontend has not been built yet (API-only / test mode).
-  //
-  // На Vercel SPA отдаёт сама платформа (vercel.json → outputDirectory), поэтому
-  // @fastify/static там не загружаем вовсе: он делает CommonJS-require для ESM-зависимости,
-  // что роняло запуск функции (ERR_REQUIRE_ESM).
+  // Generated documents are served only through the authenticated download route.
   if (!config.isServerless && existsSync(WEB_DIST)) {
     const { default: fastifyStatic } = await import('@fastify/static');
     await fastify.register(fastifyStatic, {
@@ -176,7 +157,6 @@ export async function buildServer() {
       if (req.url.startsWith('/api/') || req.url.startsWith('/storage/')) {
         return reply.code(404).send({ error: 'not_found', message: 'Not found' });
       }
-      // Deep links into the SPA: любой путь сайта отдаёт index.html.
       return reply.sendFile('index.html');
     });
   } else {
@@ -192,14 +172,13 @@ export async function buildServer() {
   return fastify;
 }
 
-/** Run migrations + start listening. Used by the real process (not tests). */
+/** Run migrations + start listening. Used by the real process and Vercel's Fastify runtime. */
 export async function startServer() {
   migrate(db());
   const fastify = await buildServer();
   await fastify.listen({ port: config.PORT, host: config.HOST });
-  fastify.log.info(`🚀 API ready on http://${config.HOST}:${config.PORT}`);
+  fastify.log.info(`API ready on http://${config.HOST}:${config.PORT}`);
 
-  // Keep reminder promotion independent from UI reads.
   const reminderTimer = setInterval(() => {
     try {
       const promoted = flushAllDueReminders();
@@ -224,7 +203,8 @@ export async function startServer() {
 }
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isMain) {
+// Vercel imports the entrypoint rather than executing it as the main script.
+if (isMain || isServerless) {
   startServer().catch((err) => {
     console.error('Fatal startup error:', err);
     process.exit(1);
