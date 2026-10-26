@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - export/full-site-source
+  pull_request:
+    branches:
+      - fix/security-audit-cookie-mobile
+    paths:
+      - '.github/workflows/export-full-site-source.yml'
   workflow_dispatch:
 
 permissions:
