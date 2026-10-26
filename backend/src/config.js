@@ -51,8 +51,6 @@ if (isServerless) {
   const tmp = tmpdir();
   if (!process.env.DB_PATH) { process.env.DB_PATH = resolve(tmp, 'mir-app.sqlite'); ephemeral.storage = true; }
   if (!process.env.STORAGE_DIR) { process.env.STORAGE_DIR = resolve(tmp, 'mir-storage'); ephemeral.storage = true; }
-  // Generate a secret only when one is absent. A supplied but weak secret is
-  // never silently replaced — configuration validation must fail instead.
   if (!process.env.JWT_SECRET) {
     process.env.JWT_SECRET = randomBytes(48).toString('hex');
     ephemeral.secret = true;
@@ -70,7 +68,7 @@ if (isServerless) {
 
 const schema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']).default('development'),
-  PORT: z.coerce.number().int().positive().default(4000),
+  PORT: z.coerce.number().int().positive().default(isServerless ? 3000 : 4000),
   HOST: z.string().default('0.0.0.0'),
 
   // Paths
@@ -83,11 +81,9 @@ const schema = z.object({
   JWT_REFRESH_TTL: z.string().default('30d'),
   REFRESH_TOKEN_ROTATION: z.coerce.boolean().default(true),
 
-  // CORS: comma-separated list of allowed browser origins (production domain + partner sites).
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   CORS_ORIGINS: z.string().default(''),
 
-  // Svetlana model runtime: endpoint and key exist only on the server.
   AI_API_KEY: z.string().optional(),
   AI_BASE_URL: z.string().url().optional(),
   AI_MODEL: z.string().default('svetlana-core'),
@@ -95,26 +91,18 @@ const schema = z.object({
   AI_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
   AI_MAX_RETRIES: z.coerce.number().int().nonnegative().default(2),
 
-  // Embeddings for RAG (optional — a deterministic hash fallback keeps RAG working offline)
   EMBEDDING_PROVIDER: z.enum(['remote', 'local', 'none']).default('none'),
   EMBEDDING_DIM: z.coerce.number().int().positive().default(768),
 
-  // Payments. 'test' provider is allowed only outside production.
   PAYMENT_PROVIDER: z.string().default('test'),
   YOOKASSA_SHOP_ID: z.string().optional(),
   YOOKASSA_SECRET: z.string().optional(),
 
-  // Marketplace commission. Live value lives in system_config; this is the seed default.
   DEFAULT_COMMISSION_PERCENT: z.coerce.number().min(0).max(100).default(10),
-
-  // Rate limits
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
-
-  // Demo/seed data — mocks only allowed when this is explicitly true.
   SEED_DEMO_DATA: z.coerce.boolean().default(false),
 
-  // Optional email transport. Absent means in_app only.
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().optional(),
 });
