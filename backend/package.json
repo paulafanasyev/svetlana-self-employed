@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Единый backend Мир Самозанятых: auth, CRM, documents, AI/Светлана, marketplace, education, payments, RAG.",
-  "main": "src/server.js",
+  "main": "api/index.js",
   "scripts": {
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node --env-file=.env src/server.js",
