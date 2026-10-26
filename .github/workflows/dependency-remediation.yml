@@ -1,0 +1,73 @@
+name: Dependency remediation (gated)
+
+on:
+  push:
+    branches: [fix/security-audit-cookie-mobile]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dependency-remediation-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  remediate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Update known vulnerable production dependency lines
+        run: |
+          npm pkg set 'dependencies.fastify=^5.12.6' --workspace backend
+          npm pkg set 'dependencies.zod=^4.6.7' --workspace backend
+          npm pkg set 'dependencies.react-router-dom=^7.18.4' --workspace web
+          npm install --package-lock-only
+          npm audit fix || true
+      - name: Clean install from regenerated lockfile
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Backend tests
+        run: npm run test:backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-do-not-use-in-prod
+          DB_PATH: ':memory:'
+          STORAGE_DIR: ./tmp-storage
+      - name: Web tests
+        run: npm run test:web
+        env:
+          NODE_ENV: test
+      - name: Build static website
+        run: npm run build:web
+        env:
+          VITE_BASE_PATH: '/'
+          VITE_PUBLIC_ORIGIN: 'https://xn----8sba1acxdkgqms3b9euc.xn--p1ai'
+      - name: Package static site for REG.RU FTP deployment
+        uses: actions/upload-artifact@v7
+        with:
+          name: reg-ru-static-site
+          path: web/dist/
+          if-no-files-found: error
+          retention-days: 3
+      - name: Verify no high or critical production vulnerabilities remain
+        run: npm audit --omit=dev --audit-level=high
+      - name: Commit dependency changes only after all gates pass
+        run: |
+          if git diff --quiet -- package.json package-lock.json backend/package.json web/package.json; then
+            echo "No dependency files changed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json backend/package.json web/package.json
+          git commit -m "fix: remediate audited production dependencies"
+          git push origin HEAD:${{ github.ref_name }}

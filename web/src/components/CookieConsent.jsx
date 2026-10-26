@@ -111,13 +111,14 @@ export function CookieSettingsButton() {
   );
 }
 
-function CookieConsentModal({ onClose }) {
+function CookieConsentModal({ onClose, onSave }) {
   const current = parseConsent();
   const [analytics, setAnalytics] = useState(Boolean(current?.analytics));
 
   const save = () => {
     setCookieConsent({ analytics });
-    onClose();
+    if (onSave) onSave();
+    else onClose();
   };
 
   return (
@@ -186,7 +187,15 @@ export default function CookieConsent() {
   }, []);
 
   if (settingsOpen) {
-    return <CookieConsentModal onClose={() => setSettingsOpen(false)} />;
+    return (
+      <CookieConsentModal
+        onClose={() => setSettingsOpen(false)}
+        onSave={() => {
+          setSettingsOpen(false);
+          setOpen(false);
+        }}
+      />
+    );
   }
 
   if (!open) return null;
@@ -199,9 +208,9 @@ export default function CookieConsent() {
         <span>Подробнее: <a href={(import.meta.env.BASE_URL || '/') + 'privacy'}>Политика конфиденциальности</a> · <a href={(import.meta.env.BASE_URL || '/') + 'cookies'}>Политика cookie</a></span>
       </div>
       <div className="site-cookie-actions">
-        <button type="button" className="site-btn site-btn-soft" onClick={() => { setCookieConsent({ analytics: false }); }}>Только необходимые</button>
+        <button type="button" className="site-btn site-btn-soft" onClick={() => { setCookieConsent({ analytics: false }); setOpen(false); }}>Только необходимые</button>
         <button type="button" className="site-btn site-btn-soft" onClick={() => setSettingsOpen(true)}>Настроить</button>
-        <button type="button" className="site-btn site-btn-primary" onClick={() => { setCookieConsent({ analytics: true }); }}>Разрешить аналитику</button>
+        <button type="button" className="site-btn site-btn-primary" onClick={() => { setCookieConsent({ analytics: true }); setOpen(false); }}>Разрешить аналитику</button>
       </div>
     </div>
   );
