@@ -1227,9 +1227,20 @@ html[data-theme="dark"] .site-analytics-privacy{background:#0e1b13}
 html[data-theme="dark"] .site-region-partner-cta p{color:#9fb3a5}
 
 @media (max-width:760px){
-  .site-cookie-banner{grid-template-columns:1fr}
+  .site-cookie-banner{
+    grid-template-columns:1fr;
+    bottom:max(12px,env(safe-area-inset-bottom));
+    max-height:70dvh;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding:16px;
+  }
   .site-cookie-actions{justify-content:stretch}
-  .site-cookie-actions .site-btn{flex:1 1 150px}
+  .site-cookie-actions .site-btn{flex:1 1 150px;min-height:44px}
+  .site-cookie-overlay{place-items:start center;overflow-y:auto;padding:12px}
+  .site-cookie-dialog{max-height:calc(100dvh - 24px);overflow-y:auto;padding:18px}
+  .site-cookie-dialog-actions{flex-wrap:wrap}
+  .site-cookie-dialog-actions .site-btn{min-height:44px}
   .site-cookie-table > div{grid-template-columns:1fr}
   .site-organization-mark{min-height:300px}
   .site-organization-mark-inner{min-height:300px}
