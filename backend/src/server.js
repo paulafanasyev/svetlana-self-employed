@@ -18,7 +18,7 @@ import cookie from '@fastify/cookie';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { config, isServerless } from './config.js';
+import { config } from './config.js';
 import { db, closeDb } from './db/client.js';
 import { migrate } from './db/migrate.js';
 import authPlugin from './auth/plugin.js';
@@ -54,7 +54,6 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const WEB_DIST = resolve(__dirname, '../../web/dist');
 
 export async function buildServer() {
-  // Storage dir must exist before static registration.
   mkdirSync(config.STORAGE_DIR, { recursive: true });
 
   const fastify = Fastify({
@@ -64,7 +63,6 @@ export async function buildServer() {
     },
     bodyLimit: 25 * 1024 * 1024,
     ajv: { customOptions: { removeAdditional: 'all' } },
-    // Behind nginx on the VPS, trust the forwarded client IP only when explicitly enabled.
     trustProxy: process.env.TRUST_PROXY === '1' ? 1 : false,
   });
 
@@ -89,7 +87,6 @@ export async function buildServer() {
   });
 
   await fastify.register(cookie, { secret: config.JWT_SECRET });
-
   await fastify.register(cors, {
     origin: config.corsOrigins.length ? config.corsOrigins : true,
     credentials: true,
@@ -110,8 +107,6 @@ export async function buildServer() {
     limits: { fileSize: 25 * 1024 * 1024, files: 5 },
   });
 
-  // API: everything under a versioned prefix. The auth plugin is registered
-  // inside this scope so its decorators are visible to every route plugin below.
   await fastify.register(
     async (api) => {
       api.register(authPlugin);
@@ -172,7 +167,7 @@ export async function buildServer() {
   return fastify;
 }
 
-/** Run migrations + start listening. Used by the real process and Vercel's Fastify runtime. */
+/** Run migrations + start listening for long-running non-serverless deployments. */
 export async function startServer() {
   migrate(db());
   const fastify = await buildServer();
@@ -203,8 +198,7 @@ export async function startServer() {
 }
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-// Vercel imports the entrypoint rather than executing it as the main script.
-if (isMain || isServerless) {
+if (isMain) {
   startServer().catch((err) => {
     console.error('Fatal startup error:', err);
     process.exit(1);
