@@ -17,6 +17,7 @@ as_app VITE_API_URL=/api/v1 VITE_BASE_PATH=/ VITE_PUBLIC_ORIGIN="https://$MIR_DO
 echo "==> База: миграции"
 cd $MIR_DIR/backend
 runuser -u svetlana -- node --env-file=$ENV src/db/migrate.js
+runuser -u svetlana -- node --env-file=$ENV src/db/seed.js
 
 echo "==> Голос Светланы: Piper (Ирина)"
 # Без него сайт говорит синтезатором браузера. Повторный запуск ничего не качает заново.
