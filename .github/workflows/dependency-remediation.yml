@@ -51,6 +51,13 @@ jobs:
         env:
           VITE_BASE_PATH: '/'
           VITE_PUBLIC_ORIGIN: 'https://xn----8sba1acxdkgqms3b9euc.xn--p1ai'
+      - name: Package static site for REG.RU FTP deployment
+        uses: actions/upload-artifact@v7
+        with:
+          name: reg-ru-static-site
+          path: web/dist/
+          if-no-files-found: error
+          retention-days: 3
       - name: Verify no high or critical production vulnerabilities remain
         run: npm audit --omit=dev --audit-level=high
       - name: Commit dependency changes only after all gates pass
