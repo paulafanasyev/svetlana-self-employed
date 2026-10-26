@@ -21,7 +21,8 @@ export CERT_EMAIL='ВАША_ПОЧТА_ДЛЯ_LETS_ENCRYPT'
 # export AI_BASE_URL='https://api.atria-asi.ai/v1'
 # export AI_MODEL='Atria-Dawn-Preview'
 export MIR_BRANCH='deploy/reg-ru-vps'
-git clone --depth 1 -b deploy/reg-ru-vps https://github.com/paulafanasyev/svetlana-self-employed.git /tmp/svetlana-deploy
+GH_AUTH="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+git -c "http.https://github.com/.extraheader=$GH_AUTH" clone --depth 1 -b deploy/reg-ru-vps https://github.com/paulafanasyev/svetlana-self-employed.git /tmp/svetlana-deploy
 cd /tmp/svetlana-deploy
 sudo -E bash deploy/vps/install.sh
 ```
