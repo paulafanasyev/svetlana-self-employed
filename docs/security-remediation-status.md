@@ -9,3 +9,5 @@ This branch is validating production dependency fixes before any release.
 - Mobile cookie-banner behavior still requires a real-device check before production can be declared fixed.
 
 - The automation now targets workspace dependencies explicitly; CI will decide whether the compatibility checks and production audit pass before committing any generated lockfile.
+
+- Latest gated run passed lint, backend tests, web tests, static build, and `npm audit --omit=dev --audit-level=high`; dependency manifests and lockfile were committed by the workflow after those gates passed.
