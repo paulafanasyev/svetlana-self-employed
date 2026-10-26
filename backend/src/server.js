@@ -18,7 +18,7 @@ import cookie from '@fastify/cookie';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { config, isServerless } from './config.js';
+import { config } from './config.js';
 import { db, closeDb } from './db/client.js';
 import { migrate } from './db/migrate.js';
 import authPlugin from './auth/plugin.js';
@@ -196,21 +196,6 @@ export async function startServer() {
 
   return fastify;
 }
-
-// The native Vercel Fastify runtime consumes the exported app instance.
-let vercelApp = null;
-if (isServerless) {
-  migrate(db());
-  try {
-    const { seedBase } = await import('./db/seed.js');
-    await seedBase();
-  } catch (error) {
-    console.error('Base seed failed (API continues without it):', error);
-  }
-  vercelApp = await buildServer();
-  await vercelApp.ready();
-}
-export default vercelApp;
 
 const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
