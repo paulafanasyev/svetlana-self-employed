@@ -7,3 +7,5 @@ This branch is validating production dependency fixes before any release.
 - Dependency changes must not be committed unless every gate passes.
 - No DNS changes or REG.RU production deployment are authorized by this branch.
 - Mobile cookie-banner behavior still requires a real-device check before production can be declared fixed.
+
+- The automation now targets workspace dependencies explicitly; CI will decide whether the compatibility checks and production audit pass before committing any generated lockfile.
