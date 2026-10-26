@@ -14,7 +14,7 @@ set -euo pipefail
 : "${CERT_EMAIL:?Нужен CERT_EMAIL для HTTPS-сертификатов}"
 MIR_DOMAIN="${MIR_DOMAIN:-xn----8sba1acxdkgqms3b9euc.xn--p1ai}"   # мир-самозанятых.рф
 YZ_DOMAIN="${YZ_DOMAIN:-xn----8sbapnu4bzhe.xn--p1ai}"              # я-зарядка.рф
-MIR_BRANCH="${MIR_BRANCH:-master}"
+MIR_BRANCH="${MIR_BRANCH:-deploy/reg-ru-vps}"
 YZ_BRANCH="${YZ_BRANCH:-main}"
 AI_BASE_URL="${AI_BASE_URL:-https://anymodel.org/v1}"
 AI_MODEL="${AI_MODEL:-am/free}"
