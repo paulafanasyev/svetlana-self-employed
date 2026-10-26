@@ -9,10 +9,8 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
-# CI permissions: source checkout and test/build only.
 permissions:
   contents: read
-  actions: write
 
 jobs:
   install:
