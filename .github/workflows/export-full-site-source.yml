@@ -30,6 +30,10 @@ jobs:
       - name: Build web and backend
         run: npm run build
         env:
+          # Build-only dummy: never included in the archive and not a production secret.
+          JWT_SECRET: 'archive-build-only-secret-32-characters-not-for-production'
+          DB_PATH: ':memory:'
+          STORAGE_DIR: './tmp-storage'
           VITE_BASE_PATH: '/'
           VITE_PUBLIC_ORIGIN: 'https://xn----8sba1acxdkgqms3b9euc.xn--p1ai'
       - name: Assemble complete source package
