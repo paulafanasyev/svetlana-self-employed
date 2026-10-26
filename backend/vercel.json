@@ -8,5 +8,11 @@
       "maxDuration": 60,
       "includeFiles": "src/db/schema/**/*.sql"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    }
+  ]
 }
